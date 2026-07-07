@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Math Practice</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="card hero-card">
+        <div class="hero-copy">
+          <p class="eyebrow">1st Grade Math Play</p>
+          <h1>Write the answer with your finger</h1>
+          <p class="subtitle">
+            Practice addition, subtraction, and multiplication up to 11 with a handwriting board.
+          </p>
+        </div>
+
+        <div class="hero-friend" aria-hidden="true">
+          <div class="friend-face">
+            <span class="eye left"></span>
+            <span class="eye right"></span>
+            <span class="smile"></span>
+          </div>
+        </div>
+
+        <div class="mode-picker" aria-label="Choose a practice type">
+          <button class="mode-button is-active" data-mode="addition" type="button">
+            Addition
+          </button>
+          <button class="mode-button" data-mode="subtraction" type="button">
+            Subtraction
+          </button>
+          <button class="mode-button" data-mode="multiplication" type="button">
+            Multiplication
+          </button>
+        </div>
+      </section>
+
+      <section class="card practice-card">
+        <div class="progress-row">
+          <div class="progress-pill">
+            <span>Correct</span>
+            <strong id="correct-count">0</strong>
+          </div>
+          <div class="progress-pill">
+            <span>Answered</span>
+            <strong id="total-count">0</strong>
+          </div>
+          <div class="progress-pill">
+            <span>Streak</span>
+            <strong id="streak-count">0</strong>
+          </div>
+        </div>
+
+        <div class="sticker-panel">
+          <div>
+            <p id="mode-label" class="practice-label">Addition</p>
+            <p id="coach-text" class="coach-text">Write one digit in each box.</p>
+          </div>
+          <div id="sticker-row" class="sticker-row" aria-label="Star progress"></div>
+        </div>
+
+        <div id="problem-board" class="problem-board" aria-live="polite">
+          <span id="left-number">4</span>
+          <span id="math-sign">+</span>
+          <span id="right-number">3</span>
+          <span>=</span>
+          <span>?</span>
+        </div>
+
+        <section class="handwriting-panel" aria-label="Handwriting answer area">
+          <div class="handwriting-topline">
+            <p class="handwriting-title">Handwriting board</p>
+            <div class="recognized-pill">
+              <span>I read</span>
+              <strong id="recognized-answer">-</strong>
+            </div>
+          </div>
+
+          <p class="handwriting-help">
+            Write the whole answer in one box, then tap <strong>Check my answer</strong>.
+          </p>
+
+          <div id="pad-grid" class="pad-grid">
+            <div class="pad-shell is-active" data-pad-index="0">
+              <div class="pad-index">A</div>
+              <canvas class="digit-pad" aria-label="Answer handwriting box"></canvas>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="check-button" class="primary-button check-button" type="button">
+              <span class="magnifier-icon" aria-hidden="true"></span>
+              <span>Check my answer</span>
+            </button>
+            <button
+              id="clear-all-button"
+              class="secondary-button eraser-button"
+              type="button"
+              aria-label="Clear the handwriting board"
+            >
+              <span class="eraser-icon" aria-hidden="true"></span>
+              <span>Eraser</span>
+            </button>
+          </div>
+        </section>
+
+        <p id="feedback" class="feedback neutral" aria-live="polite">Write your answer in the box.</p>
+
+        <div class="action-row">
+          <button id="next-button" class="secondary-button" type="button">Skip to new problem</button>
+          <button id="reset-button" class="secondary-button" type="button">Reset stars</button>
+        </div>
+      </section>
+    </main>
+
+    <div id="result-modal" class="result-modal-backdrop" hidden>
+      <div class="result-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div id="modal-badge" class="modal-badge">★</div>
+        <h2 id="modal-title">Great job!</h2>
+        <p id="modal-message">You got it right.</p>
+        <button id="modal-button" class="primary-button" type="button">Next problem</button>
+      </div>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
