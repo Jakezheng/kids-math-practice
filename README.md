@@ -1,67 +1,42 @@
-# Home Learning Web App
+# Kids Math Practice
 
-A LAN-first home learning web app for two child profiles. The app runs on a home computer and is meant to be opened from iPad Safari on the same Wi-Fi network.
+Interactive first-grade math practice for kids with a large handwriting board, instant answer checking, and pop-up feedback.
 
-## Features
+## What It Includes
 
-- Kid mode with a simple child picker and daily task cards
-- Parent mode with password gate, progress dashboard, weak-skill summary, and difficulty controls
-- Separate profiles and assignment history for `K` and `Grade 1`
-- Local JSON persistence and local audio recording storage
+- Addition and subtraction within 100
+- Multiplication up to 11
+- One large handwriting box for writing the full answer
+- Handwritten digit recognition tuned for child-friendly input
+- Cute eraser and magnifier actions
+- GitHub Pages deployment
 
-## Run
+## Run Locally
 
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Start the server:
+Install Node.js, then start the local preview server:
 
 ```bash
 npm start
 ```
 
-3. Open `http://127.0.0.1:3000` on the home computer. The home page now shows:
-
-- The computer name
-- The local check URL
-- The LAN URLs your iPad can use on the same Wi-Fi
-
-4. From the iPad, open one of the LAN URLs shown on the home page, for example:
+Open:
 
 ```text
-http://YOUR_COMPUTER_IP:3000
+http://127.0.0.1:3000/
 ```
 
-If you need microphone recording on iPad Safari, use HTTPS. The app will automatically show HTTPS LAN links when these files exist:
-
-```text
-certs/lan-server.pfx
-```
-
-The easiest Windows setup path in this repo is:
+For auto-reload during local development:
 
 ```bash
-npm run setup:https
+npm run dev
 ```
 
-That script creates:
+## Project Structure
 
-- `certs/lan-server.pfx` for the local Node server
-- `certs/lan-root.cer` to install and trust on the iPad
-- `certs/README.txt` with the generated HTTPS LAN URLs
+- `public/` contains the website files and handwriting model assets
+- `server.js` serves the static site locally
+- `.github/workflows/pages.yml` deploys the site to GitHub Pages
 
-After installing the root certificate on the iPad, Apple says you must manually enable trust in `Settings > General > About > Certificate Trust Settings`. See [Apple Support](https://support.apple.com/en-us/102390).
+## Live Site
 
-5. On the iPad home page, use `Device Check` to confirm:
-
-- The page can still reach the local server
-- The browser supports touch and recording APIs
-- `Secure context` is `Yes` when you open the HTTPS LAN link
-- Session storage works
-- The microphone permission state is visible when the browser exposes it
-- `Start mic test` and `Stop mic test` can capture a short local clip and play it back on the iPad
-
-The default parent password is `2468`.
+[https://jakezheng.github.io/kids-math-practice/](https://jakezheng.github.io/kids-math-practice/)
