@@ -448,6 +448,218 @@ function normalizeDigitCanvas(sourceCanvas, size = MODEL_SIZE, innerSize = MODEL
   return normalized;
 }
 
+function averageInk(normalized, size, startX, startY, endX, endY) {
+  let ink = 0;
+  let count = 0;
+
+  for (let y = startY; y < endY; y += 1) {
+    for (let x = startX; x < endX; x += 1) {
+      ink += normalized[y * size + x];
+      count += 1;
+    }
+  }
+
+  return count ? ink / count : 0;
+}
+
+function findNormalizedBounds(normalized, size, threshold = 0.12) {
+  let minX = size;
+  let minY = size;
+  let maxX = -1;
+  let maxY = -1;
+  let ink = 0;
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const value = normalized[y * size + x];
+      if (value > threshold) {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+        ink += value;
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+    ink,
+  };
+}
+
+function dilateMask(mask, size) {
+  const dilated = mask.slice();
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      if (!mask[y * size + x]) {
+        continue;
+      }
+
+      for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+        for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+          const nextX = x + offsetX;
+          const nextY = y + offsetY;
+          if (nextX >= 0 && nextX < size && nextY >= 0 && nextY < size) {
+            dilated[nextY * size + nextX] = 1;
+          }
+        }
+      }
+    }
+  }
+
+  return dilated;
+}
+
+function findHoleComponents(mask, size) {
+  const visited = new Uint8Array(size * size);
+  const queue = [];
+  const holes = [];
+
+  function addIfOpen(x, y) {
+    const index = y * size + x;
+    if (!mask[index] && !visited[index]) {
+      visited[index] = 1;
+      queue.push(index);
+    }
+  }
+
+  for (let index = 0; index < size; index += 1) {
+    addIfOpen(index, 0);
+    addIfOpen(index, size - 1);
+    addIfOpen(0, index);
+    addIfOpen(size - 1, index);
+  }
+
+  for (let cursor = 0; cursor < queue.length; cursor += 1) {
+    const index = queue[cursor];
+    const x = index % size;
+    const y = Math.floor(index / size);
+    if (x > 0) addIfOpen(x - 1, y);
+    if (x < size - 1) addIfOpen(x + 1, y);
+    if (y > 0) addIfOpen(x, y - 1);
+    if (y < size - 1) addIfOpen(x, y + 1);
+  }
+
+  for (let y = 1; y < size - 1; y += 1) {
+    for (let x = 1; x < size - 1; x += 1) {
+      const startIndex = y * size + x;
+      if (mask[startIndex] || visited[startIndex]) {
+        continue;
+      }
+
+      const component = [startIndex];
+      visited[startIndex] = 1;
+      let area = 0;
+      let sumX = 0;
+      let sumY = 0;
+      let minX = x;
+      let maxX = x;
+      let minY = y;
+      let maxY = y;
+
+      for (let cursor = 0; cursor < component.length; cursor += 1) {
+        const index = component[cursor];
+        const currentX = index % size;
+        const currentY = Math.floor(index / size);
+        area += 1;
+        sumX += currentX;
+        sumY += currentY;
+        minX = Math.min(minX, currentX);
+        maxX = Math.max(maxX, currentX);
+        minY = Math.min(minY, currentY);
+        maxY = Math.max(maxY, currentY);
+
+        const neighbors = [
+          [currentX - 1, currentY],
+          [currentX + 1, currentY],
+          [currentX, currentY - 1],
+          [currentX, currentY + 1],
+        ];
+
+        for (const [nextX, nextY] of neighbors) {
+          if (nextX <= 0 || nextX >= size - 1 || nextY <= 0 || nextY >= size - 1) {
+            continue;
+          }
+
+          const nextIndex = nextY * size + nextX;
+          if (!mask[nextIndex] && !visited[nextIndex]) {
+            visited[nextIndex] = 1;
+            component.push(nextIndex);
+          }
+        }
+      }
+
+      holes.push({
+        area,
+        centerX: sumX / area,
+        centerY: sumY / area,
+        width: maxX - minX + 1,
+        height: maxY - minY + 1,
+      });
+    }
+  }
+
+  return holes;
+}
+
+function isZeroLikeDigit(normalized, size = MODEL_SIZE) {
+  const bounds = findNormalizedBounds(normalized, size);
+
+  if (!bounds || bounds.ink < 8 || bounds.width < 9 || bounds.height < 11) {
+    return false;
+  }
+
+  const aspectRatio = bounds.width / bounds.height;
+  if (aspectRatio < 0.45 || aspectRatio > 1.25) {
+    return false;
+  }
+
+  const mask = new Uint8Array(size * size);
+  for (let index = 0; index < normalized.length; index += 1) {
+    mask[index] = normalized[index] > 0.16 ? 1 : 0;
+  }
+
+  const holes = findHoleComponents(dilateMask(mask, size), size).filter(
+    (hole) => hole.area >= 8 && hole.width >= 3 && hole.height >= 3,
+  );
+  const centeredHole = holes.find((hole) => {
+    const relativeX = (hole.centerX - bounds.minX) / bounds.width;
+    const relativeY = (hole.centerY - bounds.minY) / bounds.height;
+    return relativeX > 0.32 && relativeX < 0.68 && relativeY > 0.28 && relativeY < 0.72;
+  });
+
+  if (!centeredHole || holes.length > 1) {
+    return false;
+  }
+
+  const bandWidth = Math.max(3, Math.round(bounds.width * 0.24));
+  const bandHeight = Math.max(3, Math.round(bounds.height * 0.24));
+  const centerStartX = bounds.minX + Math.round(bounds.width * 0.35);
+  const centerEndX = bounds.minX + Math.round(bounds.width * 0.65);
+  const centerStartY = bounds.minY + Math.round(bounds.height * 0.35);
+  const centerEndY = bounds.minY + Math.round(bounds.height * 0.65);
+
+  const topInk = averageInk(normalized, size, bounds.minX, bounds.minY, bounds.maxX + 1, bounds.minY + bandHeight);
+  const bottomInk = averageInk(normalized, size, bounds.minX, bounds.maxY - bandHeight + 1, bounds.maxX + 1, bounds.maxY + 1);
+  const leftInk = averageInk(normalized, size, bounds.minX, bounds.minY, bounds.minX + bandWidth, bounds.maxY + 1);
+  const rightInk = averageInk(normalized, size, bounds.maxX - bandWidth + 1, bounds.minY, bounds.maxX + 1, bounds.maxY + 1);
+  const centerInk = averageInk(normalized, size, centerStartX, centerStartY, centerEndX, centerEndY);
+  const ringInk = (topInk + bottomInk + leftInk + rightInk) / 4;
+
+  return topInk > 0.08 && bottomInk > 0.08 && leftInk > 0.08 && rightInk > 0.08 && centerInk < ringInk * 0.48;
+}
+
 function softmax(values) {
   const max = Math.max(...values);
   const exps = values.map((value) => Math.exp(value - max));
@@ -482,6 +694,7 @@ async function predictDigit(digitCanvas) {
   }
 
   const normalized = normalizeDigitCanvas(digitCanvas);
+  const zeroLike = isZeroLikeDigit(normalized);
   const tensor = new ort.Tensor("float32", normalized, [1, 1, MODEL_SIZE, MODEL_SIZE]);
   const results = await state.recognizerSession.run({
     [state.recognizerInputName]: tensor,
@@ -501,10 +714,20 @@ async function predictDigit(digitCanvas) {
     }
   }
 
+  if (zeroLike && (bestIndex === 0 || probabilities[bestIndex] < 0.82 || [6, 8, 9].includes(bestIndex))) {
+    return {
+      digit: 0,
+      confidence: Math.max(probabilities[0], 0.9),
+      margin: Math.max(probabilities[0] - probabilities[secondIndex], 0.35),
+      heuristic: true,
+    };
+  }
+
   return {
     digit: bestIndex,
     confidence: probabilities[bestIndex],
     margin: probabilities[bestIndex] - probabilities[secondIndex],
+    heuristic: false,
   };
 }
 
