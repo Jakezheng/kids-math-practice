@@ -58,6 +58,7 @@
           <div>
             <p id="mode-label" class="practice-label">Addition</p>
             <p id="coach-text" class="coach-text">Write one digit in each box.</p>
+            <p id="star-progress-text" class="star-progress-text">0 / 20 stars in this mode</p>
           </div>
           <div id="sticker-row" class="sticker-row" aria-label="Star progress"></div>
         </div>
@@ -112,7 +113,46 @@
         <div class="action-row">
           <button id="next-button" class="secondary-button" type="button">Skip to new problem</button>
           <button id="reset-button" class="secondary-button" type="button">Reset stars</button>
+          <button id="history-button" class="secondary-button" type="button">Parent history</button>
         </div>
+      </section>
+
+      <section id="history-card" class="card history-card" hidden>
+        <div class="history-header">
+          <div>
+            <p class="practice-label">Parent History</p>
+            <h2 class="history-title">This session only</h2>
+            <p class="history-note">Refresh the page and this history list will clear.</p>
+          </div>
+          <div class="history-header-actions">
+            <button id="clear-history-button" class="secondary-button" type="button">
+              Clear history
+            </button>
+            <button id="close-history-button" class="secondary-button" type="button">
+              Close history
+            </button>
+          </div>
+        </div>
+
+        <div class="history-summary">
+          <div class="progress-pill">
+            <span>Records</span>
+            <strong id="history-count">0</strong>
+          </div>
+          <div class="progress-pill">
+            <span>Need review</span>
+            <strong id="history-review-count">0</strong>
+          </div>
+          <div class="progress-pill">
+            <span>Correct</span>
+            <strong id="history-correct-count">0</strong>
+          </div>
+        </div>
+
+        <div id="history-empty" class="history-empty">
+          No answers yet. This page will fill up as your child practices.
+        </div>
+        <div id="history-list" class="history-list" aria-live="polite"></div>
       </section>
     </main>
 

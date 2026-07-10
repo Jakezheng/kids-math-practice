@@ -4,6 +4,8 @@ const MODEL_PATH = new URL("./models/mnist-8.onnx", import.meta.url).href;
 const VENDOR_PATH = new URL("./vendor/", import.meta.url).href;
 const MODEL_SIZE = 28;
 const MODEL_INNER_SIZE = 20;
+const STAR_GOAL = 20;
+const MODE_SEQUENCE = ["addition", "subtraction", "multiplication"];
 
 const state = {
   mode: "addition",
@@ -12,9 +14,10 @@ const state = {
   total: 0,
   streak: 0,
   stars: 0,
+  history: [],
   locked: false,
   pads: [],
-  modalNextMessage: "",
+  modalNextAction: null,
   modalTimerId: 0,
   recognizerReady: false,
   recognizerSession: null,
@@ -42,9 +45,19 @@ const elements = {
   streakCount: document.querySelector("#streak-count"),
   nextButton: document.querySelector("#next-button"),
   resetButton: document.querySelector("#reset-button"),
+  historyButton: document.querySelector("#history-button"),
+  historyCard: document.querySelector("#history-card"),
+  historyList: document.querySelector("#history-list"),
+  historyEmpty: document.querySelector("#history-empty"),
+  historyCount: document.querySelector("#history-count"),
+  historyReviewCount: document.querySelector("#history-review-count"),
+  historyCorrectCount: document.querySelector("#history-correct-count"),
+  clearHistoryButton: document.querySelector("#clear-history-button"),
+  closeHistoryButton: document.querySelector("#close-history-button"),
   checkButton: document.querySelector("#check-button"),
   clearAllButton: document.querySelector("#clear-all-button"),
   stickerRow: document.querySelector("#sticker-row"),
+  starProgressText: document.querySelector("#star-progress-text"),
   problemBoard: document.querySelector("#problem-board"),
   recognizedAnswer: document.querySelector("#recognized-answer"),
   padShells: [...document.querySelectorAll(".pad-shell")],
@@ -66,6 +79,11 @@ function modeLabel(mode) {
     subtraction: "Subtraction",
     multiplication: "Multiplication",
   }[mode];
+}
+
+function nextMode(mode) {
+  const index = MODE_SEQUENCE.indexOf(mode);
+  return MODE_SEQUENCE[(index + 1) % MODE_SEQUENCE.length];
 }
 
 function createAdditionProblem() {
@@ -103,16 +121,17 @@ function updateScoreboard() {
 }
 
 function renderStars() {
-  const totalStars = Math.min(state.stars, 12);
+  const totalStars = Math.min(state.stars, STAR_GOAL);
   const stars = [];
 
-  for (let index = 0; index < 12; index += 1) {
+  for (let index = 0; index < STAR_GOAL; index += 1) {
     stars.push(
       `<span class="sticker ${index < totalStars ? "filled" : ""}" aria-hidden="true"></span>`,
     );
   }
 
   elements.stickerRow.innerHTML = stars.join("");
+  elements.starProgressText.textContent = `${state.stars} / ${STAR_GOAL} stars in this mode`;
 }
 
 function animateBoard(animationName) {
@@ -128,6 +147,80 @@ function setFeedback(message, type) {
 
 function setCheckEnabled(enabled) {
   elements.checkButton.disabled = !enabled;
+}
+
+function renderHistory() {
+  const reviewCount = state.history.filter((entry) => !entry.isCorrect).length;
+  const correctCount = state.history.length - reviewCount;
+  elements.historyCount.textContent = String(state.history.length);
+  elements.historyReviewCount.textContent = String(reviewCount);
+  elements.historyCorrectCount.textContent = String(correctCount);
+
+  if (!state.history.length) {
+    elements.historyEmpty.hidden = false;
+    elements.historyList.innerHTML = "";
+    return;
+  }
+
+  elements.historyEmpty.hidden = true;
+  elements.historyList.innerHTML = state.history
+    .slice()
+    .reverse()
+    .map(
+      (entry) => `
+        <article class="history-item ${entry.isCorrect ? "is-correct" : "needs-review"}">
+          <div class="history-item-top">
+            <span class="history-mode-pill">${modeLabel(entry.mode)}</span>
+            <span class="history-status-pill ${entry.isCorrect ? "" : "needs-review"}">
+              ${entry.isCorrect ? "Correct" : "Needs review"}
+            </span>
+          </div>
+          <p class="history-equation">${entry.problemText}</p>
+          <div class="history-answer-row">
+            <div class="history-answer-box">
+              <span>Child wrote</span>
+              <strong>${entry.writtenAnswer}</strong>
+            </div>
+            <div class="history-answer-box">
+              <span>Correct answer</span>
+              <strong>${entry.correctAnswer}</strong>
+            </div>
+          </div>
+          <p class="history-time">${entry.timeLabel}</p>
+        </article>`,
+    )
+    .join("");
+}
+
+function addHistoryEntry({ mode, problem, writtenAnswer, isCorrect }) {
+  state.history.push({
+    mode,
+    problemText: `${problem.left} ${problem.sign} ${problem.right} = ${problem.answer}`,
+    writtenAnswer,
+    correctAnswer: String(problem.answer),
+    isCorrect,
+    timeLabel: new Date().toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+    }),
+  });
+  renderHistory();
+}
+
+function showHistory() {
+  elements.historyCard.hidden = false;
+  elements.historyCard.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function hideHistory() {
+  elements.historyCard.hidden = true;
+}
+
+function clearHistory() {
+  state.history = [];
+  renderHistory();
+  setFeedback("Session history cleared.", "neutral");
 }
 
 function playTone(type) {
@@ -811,6 +904,7 @@ function resetResultModal() {
   elements.resultModal.hidden = true;
   elements.resultModal.classList.remove("is-toast", "is-dialog");
   elements.modalButton.hidden = false;
+  state.modalNextAction = null;
 }
 
 function openResultModal({
@@ -818,11 +912,11 @@ function openResultModal({
   message,
   tone,
   buttonLabel,
-  nextMessage,
+  nextAction,
   autoCloseMs = 0,
 }) {
   clearModalTimer();
-  state.modalNextMessage = nextMessage;
+  state.modalNextAction = nextAction ?? null;
   elements.modalTitle.textContent = title;
   elements.modalMessage.textContent = message;
   elements.modalButton.textContent = buttonLabel;
@@ -841,9 +935,19 @@ function openResultModal({
 }
 
 function closeResultModal() {
+  const nextAction = state.modalNextAction;
   resetResultModal();
   state.locked = false;
-  nextProblem(state.modalNextMessage);
+
+  if (nextAction?.type === "switch-mode") {
+    setMode(nextAction.mode, {
+      message: nextAction.message,
+      resetStars: true,
+    });
+    return;
+  }
+
+  nextProblem(nextAction?.message);
 }
 
 function renderProblem() {
@@ -870,18 +974,45 @@ function celebrateCorrectAnswer(readingText) {
   state.total += 1;
   state.streak += 1;
   state.stars += 1;
+  addHistoryEntry({
+    mode: state.mode,
+    problem: state.problem,
+    writtenAnswer: readingText,
+    isCorrect: true,
+  });
 
   updateScoreboard();
   renderStars();
   animateBoard("celebrate");
   setFeedback("Nice work. That answer is right.", "success");
   playTone("success");
+
+  if (state.stars >= STAR_GOAL) {
+    const upcomingMode = nextMode(state.mode);
+    openResultModal({
+      title: `${STAR_GOAL} stars!`,
+      message: `${modeLabel(state.mode)} is complete. Next up: ${modeLabel(upcomingMode)}.`,
+      tone: "success",
+      buttonLabel: "Next mode",
+      nextAction: {
+        type: "switch-mode",
+        mode: upcomingMode,
+        message: `Great work. Now playing ${modeLabel(upcomingMode).toLowerCase()}.`,
+      },
+      autoCloseMs: 1600,
+    });
+    return;
+  }
+
   openResultModal({
     title: "Great job!",
     message: `You wrote ${readingText}. That is correct.`,
     tone: "success",
     buttonLabel: "Next problem",
-    nextMessage: "Write the next answer.",
+    nextAction: {
+      type: "next-problem",
+      message: "Write the next answer.",
+    },
     autoCloseMs: 1200,
   });
 }
@@ -889,6 +1020,12 @@ function celebrateCorrectAnswer(readingText) {
 function handleWrongAnswer(readingText) {
   state.total += 1;
   state.streak = 0;
+  addHistoryEntry({
+    mode: state.mode,
+    problem: state.problem,
+    writtenAnswer: readingText,
+    isCorrect: false,
+  });
 
   updateScoreboard();
   animateBoard("wiggle");
@@ -899,7 +1036,10 @@ function handleWrongAnswer(readingText) {
     message: `You wrote ${readingText}. The right answer is ${state.problem.answer}.`,
     tone: "error",
     buttonLabel: "Next problem",
-    nextMessage: "Let's try a new problem.",
+    nextAction: {
+      type: "next-problem",
+      message: "Let's try a new problem.",
+    },
   });
 }
 
@@ -942,24 +1082,31 @@ async function checkHandwrittenAnswer() {
   }
 }
 
-function setMode(mode) {
+function resetStarsProgress() {
+  state.stars = 0;
+  renderStars();
+}
+
+function setMode(mode, { message, resetStars = true } = {}) {
+  if (!MODE_SEQUENCE.includes(mode)) {
+    return;
+  }
+
   state.mode = mode;
+  if (resetStars) {
+    resetStarsProgress();
+  }
 
   for (const button of elements.modeButtons) {
     button.classList.toggle("is-active", button.dataset.mode === mode);
   }
 
-  nextProblem(`Now playing ${modeLabel(mode).toLowerCase()}.`);
+  nextProblem(message ?? `Now playing ${modeLabel(mode).toLowerCase()}.`);
 }
 
 function resetScore() {
-  state.correct = 0;
-  state.total = 0;
-  state.streak = 0;
-  state.stars = 0;
-  updateScoreboard();
-  renderStars();
-  nextProblem("Stars reset. Let's play again.");
+  resetStarsProgress();
+  setFeedback("Stars reset for this mode.", "neutral");
 }
 
 function bindPadEvents() {
@@ -973,7 +1120,11 @@ function bindPadEvents() {
 }
 
 for (const button of elements.modeButtons) {
-  button.addEventListener("click", () => setMode(button.dataset.mode));
+  button.addEventListener("click", () => {
+    if (button.dataset.mode !== state.mode) {
+      setMode(button.dataset.mode);
+    }
+  });
 }
 
 elements.checkButton.addEventListener("click", () => {
@@ -984,12 +1135,16 @@ elements.nextButton.addEventListener("click", () => {
   nextProblem("Here comes a new problem.");
 });
 elements.resetButton.addEventListener("click", resetScore);
+elements.historyButton.addEventListener("click", showHistory);
+elements.clearHistoryButton.addEventListener("click", clearHistory);
+elements.closeHistoryButton.addEventListener("click", hideHistory);
 elements.modalButton.addEventListener("click", closeResultModal);
 
 createPads();
 bindPadEvents();
 updateScoreboard();
 renderStars();
+renderHistory();
 renderProblem();
 void initializeDigitRecognizer();
 
