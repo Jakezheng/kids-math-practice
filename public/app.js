@@ -4,7 +4,7 @@ const MODEL_PATH = new URL("./models/mnist-8.onnx", import.meta.url).href;
 const VENDOR_PATH = new URL("./vendor/", import.meta.url).href;
 const MODEL_SIZE = 28;
 const MODEL_INNER_SIZE = 20;
-const STAR_GOAL = 20;
+const STAR_GOAL = 14;
 const MODE_SEQUENCE = ["addition", "subtraction", "multiplication"];
 const LIMIT_OPTIONS = [10, 20, 30, 50, 100, 1000];
 
