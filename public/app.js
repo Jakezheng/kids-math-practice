@@ -93,16 +93,20 @@ function currentLimit() {
   return LIMIT_OPTIONS[state.limitIndex];
 }
 
+function randomIntFromRange(min, max) {
+  return randomInt(Math.min(min, max), Math.max(min, max));
+}
+
 function createAdditionProblem() {
   const limit = currentLimit();
-  const left = randomInt(0, limit);
+  const left = randomIntFromRange(Math.floor(limit * 0.35), limit);
   const right = randomInt(0, limit - left);
   return { left, right, sign: "+", answer: left + right };
 }
 
 function createSubtractionProblem() {
   const limit = currentLimit();
-  const left = randomInt(0, limit);
+  const left = randomIntFromRange(Math.floor(limit * 0.35), limit);
   const right = randomInt(0, left);
   return { left, right, sign: "-", answer: left - right };
 }
@@ -1177,6 +1181,12 @@ elements.historyButton.addEventListener("click", showHistory);
 elements.clearHistoryButton.addEventListener("click", clearHistory);
 elements.closeHistoryButton.addEventListener("click", hideHistory);
 elements.limitSlider.addEventListener("input", (event) => {
+  const nextIndex = Number(event.target.value);
+  if (nextIndex !== state.limitIndex) {
+    setLimitIndex(nextIndex);
+  }
+});
+elements.limitSlider.addEventListener("change", (event) => {
   const nextIndex = Number(event.target.value);
   if (nextIndex !== state.limitIndex) {
     setLimitIndex(nextIndex);
