@@ -6,10 +6,12 @@ const MODEL_SIZE = 28;
 const MODEL_INNER_SIZE = 20;
 const STAR_GOAL = 20;
 const MODE_SEQUENCE = ["addition", "subtraction", "multiplication"];
+const LIMIT_OPTIONS = [10, 20, 30, 50, 100, 1000];
 
 const state = {
   mode: "addition",
   problem: null,
+  limitIndex: 4,
   correct: 0,
   total: 0,
   streak: 0,
@@ -36,6 +38,8 @@ const elements = {
   modeButtons: [...document.querySelectorAll("[data-mode]")],
   modeLabel: document.querySelector("#mode-label"),
   coachText: document.querySelector("#coach-text"),
+  limitSlider: document.querySelector("#limit-slider"),
+  limitValue: document.querySelector("#limit-value"),
   leftNumber: document.querySelector("#left-number"),
   mathSign: document.querySelector("#math-sign"),
   rightNumber: document.querySelector("#right-number"),
@@ -86,21 +90,28 @@ function nextMode(mode) {
   return MODE_SEQUENCE[(index + 1) % MODE_SEQUENCE.length];
 }
 
+function currentLimit() {
+  return LIMIT_OPTIONS[state.limitIndex];
+}
+
 function createAdditionProblem() {
-  const left = randomInt(0, 100);
-  const right = randomInt(0, 100 - left);
+  const limit = currentLimit();
+  const left = randomInt(0, limit);
+  const right = randomInt(0, limit - left);
   return { left, right, sign: "+", answer: left + right };
 }
 
 function createSubtractionProblem() {
-  const left = randomInt(0, 100);
+  const limit = currentLimit();
+  const left = randomInt(0, limit);
   const right = randomInt(0, left);
   return { left, right, sign: "-", answer: left - right };
 }
 
 function createMultiplicationProblem() {
-  const left = randomInt(0, 11);
-  const right = randomInt(0, 11);
+  const factorLimit = Math.min(11, currentLimit());
+  const left = randomInt(0, factorLimit);
+  const right = randomInt(0, factorLimit);
   return { left, right, sign: "x", answer: left * right };
 }
 
@@ -118,6 +129,12 @@ function updateScoreboard() {
   elements.correctCount.textContent = String(state.correct);
   elements.totalCount.textContent = String(state.total);
   elements.streakCount.textContent = String(state.streak);
+}
+
+function renderLimitControl() {
+  const limit = currentLimit();
+  elements.limitSlider.value = String(state.limitIndex);
+  elements.limitValue.textContent = String(limit);
 }
 
 function renderStars() {
@@ -221,6 +238,12 @@ function clearHistory() {
   state.history = [];
   renderHistory();
   setFeedback("Session history cleared.", "neutral");
+}
+
+function setLimitIndex(limitIndex) {
+  state.limitIndex = Math.max(0, Math.min(LIMIT_OPTIONS.length - 1, limitIndex));
+  renderLimitControl();
+  nextProblem(`Number limit set to ${currentLimit()}.`);
 }
 
 function playTone(type) {
@@ -1138,12 +1161,19 @@ elements.resetButton.addEventListener("click", resetScore);
 elements.historyButton.addEventListener("click", showHistory);
 elements.clearHistoryButton.addEventListener("click", clearHistory);
 elements.closeHistoryButton.addEventListener("click", hideHistory);
+elements.limitSlider.addEventListener("input", (event) => {
+  const nextIndex = Number(event.target.value);
+  if (nextIndex !== state.limitIndex) {
+    setLimitIndex(nextIndex);
+  }
+});
 elements.modalButton.addEventListener("click", closeResultModal);
 
 createPads();
 bindPadEvents();
 updateScoreboard();
 renderStars();
+renderLimitControl();
 renderHistory();
 renderProblem();
 void initializeDigitRecognizer();

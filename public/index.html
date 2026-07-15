@@ -12,9 +12,6 @@
         <div class="hero-copy">
           <p class="eyebrow">1st Grade Math Play</p>
           <h1>Write the answer with your finger</h1>
-          <p class="subtitle">
-            Practice addition, subtraction, and multiplication up to 11 with a handwriting board.
-          </p>
         </div>
 
         <div class="hero-friend" aria-hidden="true">
@@ -36,6 +33,33 @@
             Multiplication
           </button>
         </div>
+
+        <section class="limit-panel" aria-label="Choose the number limit">
+          <div class="limit-copy">
+            <p class="practice-label">Number Limit</p>
+            <p class="limit-text">
+              Up to <strong id="limit-value">100</strong>
+            </p>
+          </div>
+          <input
+            id="limit-slider"
+            class="limit-slider"
+            type="range"
+            min="0"
+            max="5"
+            step="1"
+            value="4"
+            aria-label="Number limit"
+          />
+          <div class="limit-ticks" aria-hidden="true">
+            <span>10</span>
+            <span>20</span>
+            <span>30</span>
+            <span>50</span>
+            <span>100</span>
+            <span>1000</span>
+          </div>
+        </section>
       </section>
 
       <section class="card practice-card">

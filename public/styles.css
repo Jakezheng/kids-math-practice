@@ -105,14 +105,6 @@ h1 {
   line-height: 1;
 }
 
-.subtitle {
-  margin: 14px 0 0;
-  max-width: 34rem;
-  color: var(--soft-ink);
-  font-size: 1.08rem;
-  line-height: 1.5;
-}
-
 .hero-friend {
   position: absolute;
   right: 36px;
@@ -165,6 +157,45 @@ h1 {
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 24px;
+}
+
+.limit-panel {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(240, 248, 255, 0.95));
+  border: 1px solid var(--line);
+}
+
+.limit-copy {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.limit-text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.limit-slider {
+  width: 100%;
+  margin-top: 14px;
+  accent-color: var(--blue-deep);
+}
+
+.limit-ticks {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--soft-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 .mode-button,
@@ -848,6 +879,11 @@ h1 {
   .mode-picker,
   .action-row {
     flex-direction: column;
+  }
+
+  .limit-copy {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .mode-button,
