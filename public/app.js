@@ -240,10 +240,25 @@ function clearHistory() {
   setFeedback("Session history cleared.", "neutral");
 }
 
+function resetPracticeSession(message) {
+  state.correct = 0;
+  state.total = 0;
+  state.streak = 0;
+  state.stars = 0;
+  state.history = [];
+  state.locked = false;
+  updateScoreboard();
+  renderStars();
+  renderHistory();
+  hideHistory();
+  resetResultModal();
+  nextProblem(message);
+}
+
 function setLimitIndex(limitIndex) {
   state.limitIndex = Math.max(0, Math.min(LIMIT_OPTIONS.length - 1, limitIndex));
   renderLimitControl();
-  nextProblem(`Number limit set to ${currentLimit()}.`);
+  resetPracticeSession(`Number limit set to ${currentLimit()}. Everything was reset.`);
 }
 
 function playTone(type) {
