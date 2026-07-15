@@ -87,24 +87,6 @@ button {
   background: rgba(142, 228, 196, 0.34);
 }
 
-.hero-copy {
-  max-width: 36rem;
-}
-
-.eyebrow {
-  margin: 0 0 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 12px;
-  color: var(--soft-ink);
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(2.2rem, 4vw, 3.4rem);
-  line-height: 1;
-}
-
 .hero-friend {
   position: absolute;
   right: 36px;
@@ -156,34 +138,16 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 18px;
 }
 
 .limit-panel {
-  margin-top: 20px;
-  padding: 18px;
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(240, 248, 255, 0.95));
-  border: 1px solid var(--line);
-}
-
-.limit-copy {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.limit-text {
-  margin: 0;
-  color: var(--ink);
-  font-size: 1rem;
-  font-weight: 800;
+  margin-top: 6px;
+  max-width: 430px;
 }
 
 .limit-slider {
   width: 100%;
-  margin-top: 14px;
   accent-color: var(--blue-deep);
 }
 
@@ -879,11 +843,6 @@ h1 {
   .mode-picker,
   .action-row {
     flex-direction: column;
-  }
-
-  .limit-copy {
-    flex-direction: column;
-    align-items: flex-start;
   }
 
   .mode-button,

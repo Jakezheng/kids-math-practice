@@ -39,7 +39,6 @@ const elements = {
   modeLabel: document.querySelector("#mode-label"),
   coachText: document.querySelector("#coach-text"),
   limitSlider: document.querySelector("#limit-slider"),
-  limitValue: document.querySelector("#limit-value"),
   leftNumber: document.querySelector("#left-number"),
   mathSign: document.querySelector("#math-sign"),
   rightNumber: document.querySelector("#right-number"),
@@ -134,7 +133,8 @@ function updateScoreboard() {
 function renderLimitControl() {
   const limit = currentLimit();
   elements.limitSlider.value = String(state.limitIndex);
-  elements.limitValue.textContent = String(limit);
+  elements.limitSlider.setAttribute("aria-valuetext", String(limit));
+  elements.limitSlider.title = `Up to ${limit}`;
 }
 
 function renderStars() {
