@@ -3,7 +3,7 @@ export const LETTER_SEQUENCE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 export const LETTER_LIBRARY = {
   A: {
     strokes: [
-      { hint: "Trace the left slant down.", points: [[26, 92], [50, 10]] },
+      { hint: "Trace the left slant down.", points: [[50, 10], [26, 92]] },
       { hint: "Trace the right slant down.", points: [[50, 10], [74, 92]] },
       { hint: "Trace the middle line across.", points: [[36, 56], [64, 56]] },
     ],
@@ -82,17 +82,17 @@ export const LETTER_LIBRARY = {
   },
   M: {
     strokes: [
-      { hint: "Trace the left line down.", points: [[20, 92], [20, 10]] },
-      { hint: "Trace the first diagonal up.", points: [[20, 10], [48, 54]] },
-      { hint: "Trace the second diagonal down.", points: [[48, 54], [76, 10]] },
+      { hint: "Trace the left line down.", points: [[20, 10], [20, 92]] },
+      { hint: "Trace the first diagonal down.", points: [[20, 10], [48, 54]] },
+      { hint: "Trace the second diagonal up.", points: [[48, 54], [76, 10]] },
       { hint: "Trace the right line down.", points: [[76, 10], [76, 92]] },
     ],
   },
   N: {
     strokes: [
-      { hint: "Trace the left line down.", points: [[24, 92], [24, 10]] },
+      { hint: "Trace the left line down.", points: [[24, 10], [24, 92]] },
       { hint: "Trace the diagonal across.", points: [[24, 10], [74, 92]] },
-      { hint: "Trace the right line down.", points: [[74, 92], [74, 10]] },
+      { hint: "Trace the right line down.", points: [[74, 10], [74, 92]] },
     ],
   },
   O: {
@@ -182,16 +182,16 @@ export const LOWERCASE_LETTER_LIBRARY = {
   f: { strokes: [{ hint: "Trace the tall curve down.", points: [[56, 12], [44, 12], [38, 22], [38, 76]] }, { hint: "Trace the short line across.", points: [[26, 42], [60, 42]] }] },
   g: { strokes: [{ hint: "Trace the round part.", points: [[64, 48], [56, 40], [40, 40], [28, 50], [28, 66], [40, 76], [56, 76], [64, 66], [64, 48]] }, { hint: "Trace the tail down and around.", points: [[64, 48], [64, 88], [56, 96], [40, 96], [32, 88]] }] },
   h: { strokes: [{ hint: "Trace the tall line down.", points: [[28, 12], [28, 76]] }, { hint: "Trace the hump over.", points: [[28, 50], [40, 40], [56, 42], [64, 52], [64, 76]] }] },
-  i: { strokes: [{ hint: "Trace the short line down.", points: [[48, 40], [48, 76]] }, { hint: "Trace the dot.", points: [[48, 22], [48, 22]] }] },
-  j: { strokes: [{ hint: "Trace the line down and curve around.", points: [[52, 40], [52, 88], [44, 96], [32, 96]] }, { hint: "Trace the dot.", points: [[52, 22], [52, 22]] }] },
-  k: { strokes: [{ hint: "Trace the tall line down.", points: [[28, 12], [28, 76]] }, { hint: "Trace the upper slant.", points: [[64, 40], [28, 60]] }, { hint: "Trace the lower slant.", points: [[40, 56], [66, 76]] }] },
+  i: { strokes: [{ hint: "Trace the short line down.", points: [[48, 40], [48, 76]] }, { hint: "Trace the dot.", points: [[48, 18], [52, 22], [48, 26], [44, 22], [48, 18]] }] },
+  j: { strokes: [{ hint: "Trace the line down and curve around.", points: [[52, 40], [52, 88], [44, 96], [32, 96]] }, { hint: "Trace the dot.", points: [[52, 18], [56, 22], [52, 26], [48, 22], [52, 18]] }] },
+  k: { strokes: [{ hint: "Trace the tall line down.", points: [[28, 12], [28, 76]] }, { hint: "Trace the upper slant.", points: [[28, 60], [64, 40]] }, { hint: "Trace the lower slant.", points: [[28, 60], [66, 76]] }] },
   l: { strokes: [{ hint: "Trace the tall line down.", points: [[48, 12], [48, 76]] }] },
-  m: { strokes: [{ hint: "Trace the first line and hump.", points: [[24, 76], [24, 42], [36, 40], [46, 50], [46, 76]] }, { hint: "Trace the second hump.", points: [[46, 50], [56, 40], [68, 50], [68, 76]] }] },
-  n: { strokes: [{ hint: "Trace the line up and down.", points: [[30, 76], [30, 42], [30, 76]] }, { hint: "Trace the hump over.", points: [[30, 50], [42, 40], [58, 42], [66, 52], [66, 76]] }] },
+  m: { strokes: [{ hint: "Trace the first line up.", points: [[24, 76], [24, 42]] }, { hint: "Trace the first hump down.", points: [[24, 42], [36, 40], [46, 50], [46, 76]] }, { hint: "Trace the second hump.", points: [[46, 76], [46, 42], [58, 40], [68, 50], [68, 76]] }] },
+  n: { strokes: [{ hint: "Trace the short line up.", points: [[30, 76], [30, 42]] }, { hint: "Trace the hump over.", points: [[30, 42], [42, 40], [58, 42], [66, 52], [66, 76]] }] },
   o: { strokes: [{ hint: "Trace the little round shape.", points: [[48, 40], [62, 44], [70, 56], [68, 68], [56, 76], [40, 76], [28, 66], [26, 54], [34, 44], [48, 40]] }] },
   p: { strokes: [{ hint: "Trace the long line down.", points: [[28, 40], [28, 96]] }, { hint: "Trace the round bump.", points: [[28, 48], [40, 40], [56, 42], [66, 52], [66, 64], [56, 76], [40, 76], [28, 68]] }] },
   q: { strokes: [{ hint: "Trace the round part.", points: [[60, 48], [52, 40], [38, 40], [28, 50], [28, 66], [38, 76], [52, 76], [60, 66], [60, 48]] }, { hint: "Trace the tail down.", points: [[60, 40], [60, 96]] }] },
-  r: { strokes: [{ hint: "Trace the short line up and down.", points: [[30, 76], [30, 42], [30, 76]] }, { hint: "Trace the little curve over.", points: [[30, 50], [42, 40], [58, 44], [64, 50]] }] },
+  r: { strokes: [{ hint: "Trace the short line up.", points: [[30, 76], [30, 42]] }, { hint: "Trace the little curve over.", points: [[30, 42], [42, 40], [58, 44], [64, 50]] }] },
   s: { strokes: [{ hint: "Trace the winding curve.", points: [[64, 46], [54, 40], [40, 42], [32, 50], [40, 58], [56, 60], [64, 68], [56, 76], [40, 76], [30, 70]] }] },
   t: { strokes: [{ hint: "Trace the tall line down.", points: [[48, 18], [48, 72], [56, 76]] }, { hint: "Trace the short line across.", points: [[32, 42], [62, 42]] }] },
   u: { strokes: [{ hint: "Trace the curve down and up.", points: [[30, 40], [30, 66], [40, 76], [54, 76], [64, 66], [64, 40]] }, { hint: "Trace the short line down.", points: [[64, 40], [64, 76]] }] },
