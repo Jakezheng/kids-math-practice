@@ -1,13 +1,15 @@
-# Kids Math Practice
+# Kids Practice
 
-Interactive first-grade math practice for kids with a large handwriting board, instant answer checking, and pop-up feedback.
+Interactive first-grade practice for kids with a large handwriting board, instant answer checking, tracing guidance, and pop-up feedback.
 
 ## What It Includes
 
 - Addition and subtraction within 100
 - Multiplication up to 11
+- Uppercase and lowercase A-Z tracing with guided stroke order
 - One large handwriting box for writing the full answer
 - Handwritten digit recognition tuned for child-friendly input
+- Query-string page links: `?page=math` and `?page=letters`
 - Cute eraser and magnifier actions
 - GitHub Pages deployment
 
@@ -22,7 +24,13 @@ npm start
 Open:
 
 ```text
-http://127.0.0.1:3000/
+http://127.0.0.1:3000/?page=math
+```
+
+Letters page:
+
+```text
+http://127.0.0.1:3000/?page=letters
 ```
 
 For auto-reload during local development:

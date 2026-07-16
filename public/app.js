@@ -1,4 +1,10 @@
 import * as ort from "./vendor/ort.wasm.min.mjs";
+import {
+  LETTER_LIBRARY,
+  LETTER_SEQUENCE,
+  LOWERCASE_LETTER_LIBRARY,
+  LOWERCASE_LETTER_SEQUENCE,
+} from "./letters-data.js";
 
 const MODEL_PATH = new URL("./models/mnist-8.onnx", import.meta.url).href;
 const VENDOR_PATH = new URL("./vendor/", import.meta.url).href;
@@ -7,8 +13,11 @@ const MODEL_INNER_SIZE = 20;
 const STAR_GOAL = 14;
 const MODE_SEQUENCE = ["addition", "subtraction", "multiplication"];
 const LIMIT_OPTIONS = [10, 20, 30, 50, 100, 1000];
+const PAGE_VALUES = ["math", "letters"];
+const LETTER_CASES = ["uppercase", "lowercase"];
 
 const state = {
+  page: "math",
   mode: "addition",
   problem: null,
   limitIndex: 4,
@@ -26,6 +35,17 @@ const state = {
   recognizerInputName: "",
   recognizerOutputName: "",
   recognitionRequestId: 0,
+  letters: {
+    letterCase: "uppercase",
+    currentLetterIndex: 0,
+    correct: 0,
+    total: 0,
+    streak: 0,
+    history: [],
+    activeStrokeIndex: 0,
+    board: null,
+    speechRequestId: 0,
+  },
 };
 
 const coachLines = {
@@ -35,6 +55,10 @@ const coachLines = {
 };
 
 const elements = {
+  pageButtons: [...document.querySelectorAll("[data-page]")],
+  letterCaseButtons: [...document.querySelectorAll("[data-letter-case]")],
+  mathPage: document.querySelector("#math-page"),
+  lettersPage: document.querySelector("#letters-page"),
   modeButtons: [...document.querySelectorAll("[data-mode]")],
   modeLabel: document.querySelector("#mode-label"),
   coachText: document.querySelector("#coach-text"),
@@ -70,6 +94,32 @@ const elements = {
   modalTitle: document.querySelector("#modal-title"),
   modalMessage: document.querySelector("#modal-message"),
   modalButton: document.querySelector("#modal-button"),
+  letterCorrectCount: document.querySelector("#letter-correct-count"),
+  letterTotalCount: document.querySelector("#letter-total-count"),
+  letterStreakCount: document.querySelector("#letter-streak-count"),
+  letterCoachText: document.querySelector("#letter-coach-text"),
+  letterTargetChar: document.querySelector("#letter-target-char"),
+  letterSequenceLabel: document.querySelector("#letter-sequence-label"),
+  letterStrokeProgress: document.querySelector("#letter-stroke-progress"),
+  letterStepIndicator: document.querySelector("#letter-step-indicator"),
+  letterHandwritingHelp: document.querySelector("#letter-handwriting-help"),
+  letterCompletedPad: document.querySelector("#letter-completed-pad"),
+  letterGuideCanvas: document.querySelector("#letter-guide-canvas"),
+  letterPad: document.querySelector("#letter-pad"),
+  letterCheckButton: document.querySelector("#letter-check-button"),
+  letterClearButton: document.querySelector("#letter-clear-button"),
+  letterFeedback: document.querySelector("#letter-feedback"),
+  letterNextButton: document.querySelector("#letter-next-button"),
+  letterSpeakButton: document.querySelector("#letter-speak-button"),
+  letterHistoryButton: document.querySelector("#letter-history-button"),
+  letterHistoryCard: document.querySelector("#letter-history-card"),
+  letterHistoryCount: document.querySelector("#letter-history-count"),
+  letterHistoryReviewCount: document.querySelector("#letter-history-review-count"),
+  letterHistoryCorrectCount: document.querySelector("#letter-history-correct-count"),
+  letterHistoryEmpty: document.querySelector("#letter-history-empty"),
+  letterHistoryList: document.querySelector("#letter-history-list"),
+  letterClearHistoryButton: document.querySelector("#letter-clear-history-button"),
+  letterCloseHistoryButton: document.querySelector("#letter-close-history-button"),
 };
 
 function randomInt(min, max) {
@@ -84,9 +134,104 @@ function modeLabel(mode) {
   }[mode];
 }
 
+function parsePageFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const page = params.get("page");
+  return PAGE_VALUES.includes(page) ? page : "math";
+}
+
+function writePageToUrl(page) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("page", page);
+  window.history.pushState({}, "", url);
+}
+
+function shouldNormalizePageParam() {
+  const params = new URLSearchParams(window.location.search);
+  return !PAGE_VALUES.includes(params.get("page"));
+}
+
+function ensureLetterPageReady() {
+  if (state.letters.board) {
+    return;
+  }
+
+  setupLetterBoard();
+  renderLetterCaseButtons();
+  updateLetterScoreboard();
+  renderLetterHistory();
+  resetCurrentLetterTracing();
+  void speakCurrentLetter();
+}
+
+function renderLetterCaseButtons() {
+  for (const button of elements.letterCaseButtons) {
+    const isActive = button.dataset.letterCase === state.letters.letterCase;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  }
+}
+
+function setLetterCase(letterCase) {
+  if (!LETTER_CASES.includes(letterCase) || letterCase === state.letters.letterCase) {
+    return;
+  }
+
+  state.letters.letterCase = letterCase;
+  state.letters.currentLetterIndex = 0;
+  state.letters.activeStrokeIndex = 0;
+  renderLetterCaseButtons();
+  resetCurrentLetterTracing(`Let's trace ${letterCase} ${currentLetterKey()}.`);
+  void speakCurrentLetter();
+}
+
+function setPage(page, { updateUrl = true } = {}) {
+  state.page = PAGE_VALUES.includes(page) ? page : "math";
+  elements.mathPage.hidden = state.page !== "math";
+  elements.lettersPage.hidden = state.page !== "letters";
+
+  for (const button of elements.pageButtons) {
+    button.classList.toggle("is-active", button.dataset.page === state.page);
+  }
+
+  if (updateUrl) {
+    writePageToUrl(state.page);
+  }
+
+  resetResultModal();
+
+  if (state.page !== "letters") {
+    cancelLetterSpeech();
+  }
+
+  if (state.page === "letters") {
+    ensureLetterPageReady();
+  }
+}
+
 function nextMode(mode) {
   const index = MODE_SEQUENCE.indexOf(mode);
   return MODE_SEQUENCE[(index + 1) % MODE_SEQUENCE.length];
+}
+
+function currentLetterKey() {
+  return currentLetterSequence()[state.letters.currentLetterIndex];
+}
+
+function currentLetterData() {
+  return currentLetterLibrary()[currentLetterKey()];
+}
+
+function currentLetterSequence() {
+  return state.letters.letterCase === "lowercase" ? LOWERCASE_LETTER_SEQUENCE : LETTER_SEQUENCE;
+}
+
+function currentLetterLibrary() {
+  return state.letters.letterCase === "lowercase" ? LOWERCASE_LETTER_LIBRARY : LETTER_LIBRARY;
+}
+
+function nextLetterIndex(index) {
+  return (index + 1) % currentLetterSequence().length;
 }
 
 function currentLimit() {
@@ -323,6 +468,556 @@ function setupCanvas(canvas) {
   return { width, height, ctx };
 }
 
+function createHiDPICanvas(width, height, ratio) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width * ratio;
+  canvas.height = height * ratio;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  return { canvas, ctx };
+}
+
+function letterLayout(board) {
+  const boxSize = Math.min(board.height * 0.78, board.width * 0.68);
+  const guideLineWidth = Math.max(12, boxSize * 0.1);
+  const userLineWidth = Math.max(14, guideLineWidth * 1.2);
+  return {
+    left: (board.width - boxSize) / 2,
+    top: (board.height - boxSize) / 2,
+    boxSize,
+    guideLineWidth,
+    userLineWidth,
+    maskLineWidth: Math.max(userLineWidth * 1.45, guideLineWidth + 8),
+    eraseLineWidth: Math.max(userLineWidth * 1.55, guideLineWidth + 10),
+    dotRadius: Math.max(7, boxSize * 0.032),
+  };
+}
+
+function mapLetterPoint(board, point) {
+  const layout = letterLayout(board);
+  return {
+    x: layout.left + (layout.boxSize * point[0]) / 100,
+    y: layout.top + (layout.boxSize * point[1]) / 100,
+  };
+}
+
+function drawLetterStrokePath(ctx, board, stroke, lineWidth) {
+  const [firstPoint, ...restPoints] = stroke.points;
+  const mappedFirstPoint = mapLetterPoint(board, firstPoint);
+  ctx.beginPath();
+  ctx.moveTo(mappedFirstPoint.x, mappedFirstPoint.y);
+  for (const point of restPoints) {
+    const mappedPoint = mapLetterPoint(board, point);
+    ctx.lineTo(mappedPoint.x, mappedPoint.y);
+  }
+  ctx.lineWidth = lineWidth;
+  ctx.stroke();
+}
+
+function clearLetterFeedback(message = "Trace the highlighted stroke in order.", type = "neutral") {
+  elements.letterFeedback.textContent = message;
+  elements.letterFeedback.className = `feedback ${type}`;
+}
+
+function updateLetterScoreboard() {
+  elements.letterCorrectCount.textContent = String(state.letters.correct);
+  elements.letterTotalCount.textContent = String(state.letters.total);
+  elements.letterStreakCount.textContent = String(state.letters.streak);
+}
+
+function cancelLetterSpeech() {
+  state.letters.speechRequestId += 1;
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
+}
+
+function speakLetter(letter) {
+  return new Promise((resolve) => {
+    if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+      resolve(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(letter);
+    utterance.lang = "en-US";
+    utterance.rate = 0.36;
+    utterance.pitch = 0.96;
+    utterance.volume = 1;
+    utterance.onend = () => resolve(true);
+    utterance.onerror = () => resolve(false);
+    window.speechSynthesis.speak(utterance);
+  });
+}
+
+async function speakCurrentLetter() {
+  if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    return;
+  }
+
+  const letter = currentLetterKey();
+  const requestId = ++state.letters.speechRequestId;
+  window.speechSynthesis.cancel();
+
+  if (requestId !== state.letters.speechRequestId) {
+    return;
+  }
+
+  await speakLetter(letter);
+}
+
+function renderLetterHistory() {
+  const reviewCount = state.letters.history.filter((entry) => !entry.isCorrect).length;
+  const correctCount = state.letters.history.length - reviewCount;
+  elements.letterHistoryCount.textContent = String(state.letters.history.length);
+  elements.letterHistoryReviewCount.textContent = String(reviewCount);
+  elements.letterHistoryCorrectCount.textContent = String(correctCount);
+
+  if (!state.letters.history.length) {
+    elements.letterHistoryEmpty.hidden = false;
+    elements.letterHistoryList.innerHTML = "";
+    return;
+  }
+
+  elements.letterHistoryEmpty.hidden = true;
+  elements.letterHistoryList.innerHTML = state.letters.history
+    .slice()
+    .reverse()
+    .map(
+      (entry) => `
+        <article class="history-item ${entry.isCorrect ? "is-correct" : "needs-review"}">
+          <div class="history-item-top">
+            <span class="history-mode-pill">Letter ${entry.letter}</span>
+            <span class="history-status-pill ${entry.isCorrect ? "" : "needs-review"}">
+              ${entry.isCorrect ? "Correct" : "Needs review"}
+            </span>
+          </div>
+          <p class="history-equation">Target letter: ${entry.letter}</p>
+          <div class="history-answer-row">
+            <div class="history-answer-box">
+              <span>Result</span>
+              <strong>${entry.isCorrect ? "Passed tracing" : "Retry this letter"}</strong>
+            </div>
+            <div class="history-answer-box">
+              <span>Stroke progress</span>
+              <strong>${entry.strokeLabel}</strong>
+            </div>
+          </div>
+          <p class="history-time">${entry.timeLabel}</p>
+        </article>`,
+    )
+    .join("");
+}
+
+function addLetterHistoryEntry({ letter, isCorrect, strokeLabel }) {
+  state.letters.history.push({
+    letter,
+    isCorrect,
+    strokeLabel,
+    timeLabel: new Date().toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+    }),
+  });
+  renderLetterHistory();
+}
+
+function showLetterHistory() {
+  elements.letterHistoryCard.hidden = false;
+  elements.letterHistoryCard.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function hideLetterHistory() {
+  elements.letterHistoryCard.hidden = true;
+}
+
+function clearLetterHistory() {
+  state.letters.history = [];
+  renderLetterHistory();
+  clearLetterFeedback("Letter session history cleared.", "neutral");
+}
+
+function setupLetterBoard() {
+  const ratio = window.devicePixelRatio || 1;
+  const rect = elements.letterPad.getBoundingClientRect();
+  const width = Math.max(220, Math.round(rect.width));
+  const height = Math.max(160, Math.round(rect.height));
+
+  for (const canvas of [
+    elements.letterCompletedPad,
+    elements.letterGuideCanvas,
+    elements.letterPad,
+  ]) {
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+  }
+
+  const completedCtx = elements.letterCompletedPad.getContext("2d", { willReadFrequently: true });
+  completedCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  completedCtx.lineCap = "round";
+  completedCtx.lineJoin = "round";
+
+  const drawCtx = elements.letterPad.getContext("2d", { willReadFrequently: true });
+  drawCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  drawCtx.lineCap = "round";
+  drawCtx.lineJoin = "round";
+  drawCtx.strokeStyle = "#20415f";
+
+  const guideCtx = elements.letterGuideCanvas.getContext("2d", { willReadFrequently: true });
+  guideCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  guideCtx.lineCap = "round";
+  guideCtx.lineJoin = "round";
+
+  state.letters.board = {
+    width,
+    height,
+    ratio,
+    drawCanvas: elements.letterPad,
+    completedCanvas: elements.letterCompletedPad,
+    guideCanvas: elements.letterGuideCanvas,
+    drawCtx,
+    completedCtx,
+    guideCtx,
+    drawing: false,
+    lastX: 0,
+    lastY: 0,
+    activeStrokeBuffer: createHiDPICanvas(width, height, ratio),
+    strokeMaskBuffers: [],
+    fullMaskBuffer: createHiDPICanvas(width, height, ratio),
+  };
+}
+
+function clearLetterBoardInk() {
+  if (!state.letters.board) {
+    return;
+  }
+  const board = state.letters.board;
+  board.drawCtx.clearRect(0, 0, board.width, board.height);
+  board.completedCtx.clearRect(0, 0, board.width, board.height);
+  board.activeStrokeBuffer.ctx.clearRect(0, 0, board.width, board.height);
+}
+
+function renderLetterGuide() {
+  const board = state.letters.board;
+  if (!board) {
+    return;
+  }
+
+  const letterData = currentLetterData();
+  const layout = letterLayout(board);
+  board.guideCtx.clearRect(0, 0, board.width, board.height);
+
+  for (let index = state.letters.activeStrokeIndex; index < letterData.strokes.length; index += 1) {
+    const stroke = letterData.strokes[index];
+    board.guideCtx.strokeStyle = "rgba(89, 167, 255, 0.12)";
+    drawLetterStrokePath(board.guideCtx, board, stroke, layout.guideLineWidth);
+  }
+
+  const activeStroke = letterData.strokes[state.letters.activeStrokeIndex];
+  if (activeStroke) {
+    board.guideCtx.strokeStyle = "rgba(45, 127, 224, 0.46)";
+    drawLetterStrokePath(board.guideCtx, board, activeStroke, layout.guideLineWidth);
+    const startPoint = mapLetterPoint(board, activeStroke.points[0]);
+    board.guideCtx.fillStyle = "#2d7fe0";
+    board.guideCtx.beginPath();
+    board.guideCtx.arc(startPoint.x, startPoint.y, layout.dotRadius, 0, Math.PI * 2);
+    board.guideCtx.fill();
+  }
+}
+
+function eraseGuideSegment(board, fromPoint, toPoint) {
+  const layout = letterLayout(board);
+  board.guideCtx.save();
+  board.guideCtx.globalCompositeOperation = "destination-out";
+  board.guideCtx.strokeStyle = "rgba(0, 0, 0, 1)";
+  board.guideCtx.lineWidth = layout.eraseLineWidth;
+  board.guideCtx.beginPath();
+  board.guideCtx.moveTo(fromPoint.x, fromPoint.y);
+  board.guideCtx.lineTo(toPoint.x, toPoint.y);
+  board.guideCtx.stroke();
+  board.guideCtx.restore();
+}
+
+function buildLetterMasks() {
+  const board = state.letters.board;
+  const letterData = currentLetterData();
+  const layout = letterLayout(board);
+  board.strokeMaskBuffers = letterData.strokes.map((stroke) => {
+    const buffer = createHiDPICanvas(board.width, board.height, board.ratio);
+    buffer.ctx.strokeStyle = "#000000";
+    drawLetterStrokePath(buffer.ctx, board, stroke, layout.maskLineWidth);
+    return buffer;
+  });
+
+  board.fullMaskBuffer = createHiDPICanvas(board.width, board.height, board.ratio);
+  board.fullMaskBuffer.ctx.strokeStyle = "#000000";
+  for (const stroke of letterData.strokes) {
+    drawLetterStrokePath(board.fullMaskBuffer.ctx, board, stroke, layout.maskLineWidth);
+  }
+}
+
+function readOverlapMetrics(sourceCanvas, targetCanvas) {
+  const source = sourceCanvas.getContext("2d", { willReadFrequently: true }).getImageData(
+    0,
+    0,
+    sourceCanvas.width,
+    sourceCanvas.height,
+  ).data;
+  const target = targetCanvas.getContext("2d", { willReadFrequently: true }).getImageData(
+    0,
+    0,
+    targetCanvas.width,
+    targetCanvas.height,
+  ).data;
+
+  let overlapPixels = 0;
+  let userPixels = 0;
+  let targetPixels = 0;
+
+  for (let index = 3; index < source.length; index += 4) {
+    const userOn = source[index] > 12;
+    const targetOn = target[index] > 12;
+    if (userOn) {
+      userPixels += 1;
+    }
+    if (targetOn) {
+      targetPixels += 1;
+    }
+    if (userOn && targetOn) {
+      overlapPixels += 1;
+    }
+  }
+
+  return {
+    overlapPixels,
+    userPixels,
+    targetPixels,
+    targetCoverage: targetPixels ? overlapPixels / targetPixels : 0,
+    userPrecision: userPixels ? overlapPixels / userPixels : 0,
+  };
+}
+
+function updateLetterLabels() {
+  const letterData = currentLetterData();
+  const totalStrokes = letterData.strokes.length;
+  const currentStep = Math.min(state.letters.activeStrokeIndex + 1, totalStrokes);
+  const currentLetter = currentLetterKey();
+  const allStrokesTraced = state.letters.activeStrokeIndex >= totalStrokes;
+  const activeStroke = letterData.strokes[Math.min(state.letters.activeStrokeIndex, totalStrokes - 1)];
+  elements.letterTargetChar.textContent = currentLetter;
+  elements.letterTargetChar.dataset.letterCase = state.letters.letterCase;
+  elements.letterSequenceLabel.textContent = `Letter ${state.letters.currentLetterIndex + 1} of ${currentLetterSequence().length}`;
+  elements.letterStrokeProgress.textContent = `Stroke ${currentStep} of ${totalStrokes}`;
+  elements.letterStepIndicator.textContent = `${currentStep} / ${totalStrokes}`;
+  elements.letterCoachText.textContent = allStrokesTraced
+    ? "All strokes are traced. Tap Check my letter."
+    : activeStroke.hint;
+  elements.letterHandwritingHelp.textContent =
+    allStrokesTraced
+      ? "All strokes are traced. Tap Check my letter."
+      : "Start at the glowing dot and trace the blue stroke.";
+}
+
+function resetCurrentLetterTracing(
+  message = "Trace the highlighted stroke in order.",
+  type = "neutral",
+) {
+  if (!state.letters.board) {
+    return;
+  }
+  state.letters.activeStrokeIndex = 0;
+  clearLetterBoardInk();
+  buildLetterMasks();
+  renderLetterGuide();
+  updateLetterLabels();
+  clearLetterFeedback(message, type);
+}
+
+function advanceLetterStrokeIfReady() {
+  const board = state.letters.board;
+  const activeMask = board.strokeMaskBuffers[state.letters.activeStrokeIndex];
+  if (!activeMask) {
+    return;
+  }
+
+  const metrics = readOverlapMetrics(board.activeStrokeBuffer.canvas, activeMask.canvas);
+  if (metrics.targetCoverage >= 0.48 && metrics.userPrecision >= 0.18) {
+    board.completedCtx.drawImage(board.drawCanvas, 0, 0, board.width, board.height);
+    board.drawCtx.clearRect(0, 0, board.width, board.height);
+    state.letters.activeStrokeIndex += 1;
+    board.activeStrokeBuffer.ctx.clearRect(0, 0, board.width, board.height);
+    renderLetterGuide();
+    updateLetterLabels();
+
+    if (state.letters.activeStrokeIndex >= currentLetterData().strokes.length) {
+      clearLetterFeedback("Nice tracing. Tap Check my letter.", "success");
+    } else {
+      clearLetterFeedback("Great. Now trace the next highlighted stroke.", "neutral");
+    }
+  }
+}
+
+function checkLetterTracing() {
+  const letterData = currentLetterData();
+  const totalStrokes = letterData.strokes.length;
+  const letter = currentLetterKey();
+
+  state.letters.total += 1;
+  if (state.letters.activeStrokeIndex < totalStrokes) {
+    state.letters.streak = 0;
+    updateLetterScoreboard();
+    addLetterHistoryEntry({
+      letter,
+      isCorrect: false,
+      strokeLabel: `${state.letters.activeStrokeIndex} / ${totalStrokes} strokes`,
+    });
+    clearLetterFeedback("Finish tracing every highlighted stroke first.", "error");
+    return false;
+  }
+
+  const metrics = readOverlapMetrics(
+    state.letters.board.completedCanvas,
+    state.letters.board.fullMaskBuffer.canvas,
+  );
+  const passed = metrics.targetCoverage >= 0.54 && metrics.userPrecision >= 0.18;
+  if (!passed) {
+    state.letters.streak = 0;
+    updateLetterScoreboard();
+    addLetterHistoryEntry({
+      letter,
+      isCorrect: false,
+      strokeLabel: `${totalStrokes} / ${totalStrokes} strokes`,
+    });
+    resetCurrentLetterTracing("Close, but trace that same letter one more time.", "error");
+    return false;
+  }
+
+  state.letters.correct += 1;
+  state.letters.streak += 1;
+  updateLetterScoreboard();
+  addLetterHistoryEntry({
+    letter,
+    isCorrect: true,
+    strokeLabel: `${totalStrokes} / ${totalStrokes} strokes`,
+  });
+  return true;
+}
+
+function moveToNextLetter(message) {
+  state.letters.currentLetterIndex = nextLetterIndex(state.letters.currentLetterIndex);
+  resetCurrentLetterTracing(message);
+  void speakCurrentLetter();
+}
+
+function getLetterPoint(event) {
+  const rect = elements.letterPad.getBoundingClientRect();
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top,
+  };
+}
+
+function startLetterDrawing(event) {
+  event.preventDefault();
+  const board = state.letters.board;
+  if (!board || state.letters.activeStrokeIndex >= currentLetterData().strokes.length) {
+    return;
+  }
+
+  const point = getLetterPoint(event);
+  const layout = letterLayout(board);
+  board.drawing = true;
+  board.lastX = point.x;
+  board.lastY = point.y;
+  board.drawCtx.strokeStyle = "#20415f";
+  board.drawCtx.lineWidth = layout.userLineWidth;
+  board.activeStrokeBuffer.ctx.strokeStyle = "#000000";
+  board.activeStrokeBuffer.ctx.lineWidth = layout.userLineWidth;
+  board.drawCtx.beginPath();
+  board.drawCtx.moveTo(point.x, point.y);
+  board.drawCtx.lineTo(point.x + 0.01, point.y + 0.01);
+  board.drawCtx.stroke();
+  board.activeStrokeBuffer.ctx.beginPath();
+  board.activeStrokeBuffer.ctx.moveTo(point.x, point.y);
+  board.activeStrokeBuffer.ctx.lineTo(point.x + 0.01, point.y + 0.01);
+  board.activeStrokeBuffer.ctx.stroke();
+  eraseGuideSegment(board, point, { x: point.x + 0.01, y: point.y + 0.01 });
+  elements.letterPad.setPointerCapture(event.pointerId);
+}
+
+function drawLetter(event) {
+  const board = state.letters.board;
+  if (!board?.drawing) {
+    return;
+  }
+
+  const point = getLetterPoint(event);
+  for (const ctx of [board.drawCtx, board.activeStrokeBuffer.ctx]) {
+    ctx.beginPath();
+    ctx.moveTo(board.lastX, board.lastY);
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+  }
+  eraseGuideSegment(board, { x: board.lastX, y: board.lastY }, point);
+  board.lastX = point.x;
+  board.lastY = point.y;
+}
+
+function stopLetterDrawing(event) {
+  const board = state.letters.board;
+  if (!board?.drawing) {
+    return;
+  }
+
+  board.drawing = false;
+  try {
+    elements.letterPad.releasePointerCapture(event.pointerId);
+  } catch {}
+  advanceLetterStrokeIfReady();
+}
+
+function celebrateLetterSuccess() {
+  const letter = currentLetterKey();
+  playTone("success");
+
+  openResultModal({
+    title: "Great tracing!",
+    message: `You traced the letter ${letter} well.`,
+    tone: "success",
+    buttonLabel: "Next letter",
+    nextAction: {
+      type: "letter-next",
+      message: "Trace the next letter in order.",
+    },
+    autoCloseMs: 1200,
+  });
+}
+
+function resetLetterSession(message) {
+  state.letters.correct = 0;
+  state.letters.total = 0;
+  state.letters.streak = 0;
+  state.letters.history = [];
+  state.letters.currentLetterIndex = 0;
+  state.letters.activeStrokeIndex = 0;
+  updateLetterScoreboard();
+  renderLetterHistory();
+  hideLetterHistory();
+  resetCurrentLetterTracing(message);
+  void speakCurrentLetter();
+}
+
+function handleLetterCheck() {
+  const passed = checkLetterTracing();
+  if (passed) {
+    celebrateLetterSuccess();
+  } else {
+    playTone("error");
+  }
+}
 function createPads() {
   state.pads = elements.padCanvases.map((canvas, index) => {
     const setup = setupCanvas(canvas);
@@ -981,6 +1676,11 @@ function closeResultModal() {
   resetResultModal();
   state.locked = false;
 
+  if (nextAction?.type === "letter-next") {
+    moveToNextLetter(nextAction.message);
+    return;
+  }
+
   if (nextAction?.type === "switch-mode") {
     setMode(nextAction.mode, {
       message: nextAction.message,
@@ -1161,6 +1861,14 @@ function bindPadEvents() {
   }
 }
 
+function bindLetterPadEvents() {
+  elements.letterPad.addEventListener("pointerdown", startLetterDrawing);
+  elements.letterPad.addEventListener("pointermove", drawLetter);
+  elements.letterPad.addEventListener("pointerup", stopLetterDrawing);
+  elements.letterPad.addEventListener("pointercancel", stopLetterDrawing);
+  elements.letterPad.addEventListener("pointerleave", stopLetterDrawing);
+}
+
 for (const button of elements.modeButtons) {
   button.addEventListener("click", () => {
     if (button.dataset.mode !== state.mode) {
@@ -1172,6 +1880,19 @@ for (const button of elements.modeButtons) {
 elements.checkButton.addEventListener("click", () => {
   void checkHandwrittenAnswer();
 });
+
+for (const button of elements.pageButtons) {
+  button.addEventListener("click", () => {
+    if (button.dataset.page !== state.page) {
+      setPage(button.dataset.page);
+    }
+  });
+}
+
+for (const button of elements.letterCaseButtons) {
+  button.addEventListener("click", () => setLetterCase(button.dataset.letterCase));
+}
+
 elements.clearAllButton.addEventListener("click", () => clearAllPads());
 elements.nextButton.addEventListener("click", () => {
   nextProblem("Here comes a new problem.");
@@ -1193,14 +1914,33 @@ elements.limitSlider.addEventListener("change", (event) => {
   }
 });
 elements.modalButton.addEventListener("click", closeResultModal);
+elements.letterCheckButton.addEventListener("click", handleLetterCheck);
+elements.letterClearButton.addEventListener("click", () => {
+  resetCurrentLetterTracing("Try tracing that letter again.");
+});
+elements.letterNextButton.addEventListener("click", () => {
+  moveToNextLetter("Skipped ahead. Trace the next letter.");
+});
+elements.letterSpeakButton.addEventListener("click", () => {
+  void speakCurrentLetter();
+});
+elements.letterHistoryButton.addEventListener("click", showLetterHistory);
+elements.letterClearHistoryButton.addEventListener("click", clearLetterHistory);
+elements.letterCloseHistoryButton.addEventListener("click", hideLetterHistory);
+
+window.addEventListener("popstate", () => {
+  setPage(parsePageFromUrl(), { updateUrl: false });
+});
 
 createPads();
 bindPadEvents();
+bindLetterPadEvents();
 updateScoreboard();
 renderStars();
 renderLimitControl();
 renderHistory();
 renderProblem();
+setPage(parsePageFromUrl(), { updateUrl: shouldNormalizePageParam() });
 void initializeDigitRecognizer();
 
 window.mathPractice = {
@@ -1208,5 +1948,6 @@ window.mathPractice = {
   checkHandwrittenAnswer,
   readHandwrittenAnswer,
   setMode,
+  setPage,
   state,
 };

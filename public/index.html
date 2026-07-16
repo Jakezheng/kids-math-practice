@@ -3,175 +3,348 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Math Practice</title>
+    <title>Kids Practice</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="page">
-      <section class="card hero-card">
-        <div class="hero-friend" aria-hidden="true">
-          <div class="friend-face">
-            <span class="eye left"></span>
-            <span class="eye right"></span>
-            <span class="smile"></span>
-          </div>
-        </div>
+      <nav class="card page-switcher" aria-label="Choose a practice page">
+        <button class="page-button is-active" data-page="math" type="button">Math</button>
+        <button class="page-button" data-page="letters" type="button">Letters A-Z</button>
+      </nav>
 
-        <section class="limit-panel" aria-label="Choose the number limit">
-          <input
-            id="limit-slider"
-            class="limit-slider"
-            type="range"
-            min="0"
-            max="5"
-            step="1"
-            value="4"
-            aria-label="Number limit"
-          />
-          <div class="limit-ticks" aria-hidden="true">
-            <span>10</span>
-            <span>20</span>
-            <span>30</span>
-            <span>50</span>
-            <span>100</span>
-            <span>1000</span>
+      <div id="math-page" class="page-view">
+        <section class="card hero-card">
+          <div class="hero-friend" aria-hidden="true">
+            <div class="friend-face">
+              <span class="eye left"></span>
+              <span class="eye right"></span>
+              <span class="smile"></span>
+            </div>
+          </div>
+
+          <section class="limit-panel" aria-label="Choose the number limit">
+            <input
+              id="limit-slider"
+              class="limit-slider"
+              type="range"
+              min="0"
+              max="5"
+              step="1"
+              value="4"
+              aria-label="Number limit"
+            />
+            <div class="limit-ticks" aria-hidden="true">
+              <span>10</span>
+              <span>20</span>
+              <span>30</span>
+              <span>50</span>
+              <span>100</span>
+              <span>1000</span>
+            </div>
+          </section>
+
+          <div class="mode-picker" aria-label="Choose a practice type">
+            <button class="mode-button is-active" data-mode="addition" type="button">
+              Addition
+            </button>
+            <button class="mode-button" data-mode="subtraction" type="button">
+              Subtraction
+            </button>
+            <button class="mode-button" data-mode="multiplication" type="button">
+              Multiplication
+            </button>
           </div>
         </section>
 
-        <div class="mode-picker" aria-label="Choose a practice type">
-          <button class="mode-button is-active" data-mode="addition" type="button">
-            Addition
-          </button>
-          <button class="mode-button" data-mode="subtraction" type="button">
-            Subtraction
-          </button>
-          <button class="mode-button" data-mode="multiplication" type="button">
-            Multiplication
-          </button>
-        </div>
-      </section>
-
-      <section class="card practice-card">
-        <div class="progress-row">
-          <div class="progress-pill">
-            <span>Correct</span>
-            <strong id="correct-count">0</strong>
-          </div>
-          <div class="progress-pill">
-            <span>Answered</span>
-            <strong id="total-count">0</strong>
-          </div>
-          <div class="progress-pill">
-            <span>Streak</span>
-            <strong id="streak-count">0</strong>
-          </div>
-        </div>
-
-        <div class="sticker-panel">
-          <div>
-            <p id="mode-label" class="practice-label">Addition</p>
-            <p id="coach-text" class="coach-text">Write one digit in each box.</p>
-            <p id="star-progress-text" class="star-progress-text">0 / 14 stars in this mode</p>
-          </div>
-          <div id="sticker-row" class="sticker-row" aria-label="Star progress"></div>
-        </div>
-
-        <div id="problem-board" class="problem-board" aria-live="polite">
-          <span id="left-number">4</span>
-          <span id="math-sign">+</span>
-          <span id="right-number">3</span>
-          <span>=</span>
-          <span>?</span>
-        </div>
-
-        <section class="handwriting-panel" aria-label="Handwriting answer area">
-          <div class="handwriting-topline">
-            <p class="handwriting-title">Handwriting board</p>
-            <div class="recognized-pill">
-              <span>I read</span>
-              <strong id="recognized-answer">-</strong>
+        <section class="card practice-card">
+          <div class="progress-row">
+            <div class="progress-pill">
+              <span>Correct</span>
+              <strong id="correct-count">0</strong>
+            </div>
+            <div class="progress-pill">
+              <span>Answered</span>
+              <strong id="total-count">0</strong>
+            </div>
+            <div class="progress-pill">
+              <span>Streak</span>
+              <strong id="streak-count">0</strong>
             </div>
           </div>
 
-          <p class="handwriting-help">
-            Write the whole answer in one box, then tap <strong>Check my answer</strong>.
-          </p>
-
-          <div id="pad-grid" class="pad-grid">
-            <div class="pad-shell is-active" data-pad-index="0">
-              <div class="pad-index">A</div>
-              <canvas class="digit-pad" aria-label="Answer handwriting box"></canvas>
+          <div class="sticker-panel">
+            <div>
+              <p id="mode-label" class="practice-label">Addition</p>
+              <p id="coach-text" class="coach-text">Write one digit in each box.</p>
+              <p id="star-progress-text" class="star-progress-text">0 / 14 stars in this mode</p>
             </div>
+            <div id="sticker-row" class="sticker-row" aria-label="Star progress"></div>
           </div>
+
+          <div id="problem-board" class="problem-board" aria-live="polite">
+            <span id="left-number">4</span>
+            <span id="math-sign">+</span>
+            <span id="right-number">3</span>
+            <span>=</span>
+            <span>?</span>
+          </div>
+
+          <section class="handwriting-panel" aria-label="Handwriting answer area">
+            <div class="handwriting-topline">
+              <p class="handwriting-title">Handwriting board</p>
+              <div class="recognized-pill">
+                <span>I read</span>
+                <strong id="recognized-answer">-</strong>
+              </div>
+            </div>
+
+            <p class="handwriting-help">
+              Write the whole answer in one box, then tap <strong>Check my answer</strong>.
+            </p>
+
+            <div id="pad-grid" class="pad-grid">
+              <div class="pad-shell is-active" data-pad-index="0">
+                <div class="pad-index">A</div>
+                <canvas class="digit-pad" aria-label="Answer handwriting box"></canvas>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button id="check-button" class="primary-button check-button" type="button">
+                <span class="magnifier-icon" aria-hidden="true"></span>
+                <span>Check my answer</span>
+              </button>
+              <button
+                id="clear-all-button"
+                class="secondary-button eraser-button"
+                type="button"
+                aria-label="Clear the handwriting board"
+              >
+                <span class="eraser-icon" aria-hidden="true"></span>
+                <span>Eraser</span>
+              </button>
+            </div>
+          </section>
+
+          <p id="feedback" class="feedback neutral" aria-live="polite">Write your answer in the box.</p>
 
           <div class="action-row">
-            <button id="check-button" class="primary-button check-button" type="button">
-              <span class="magnifier-icon" aria-hidden="true"></span>
-              <span>Check my answer</span>
+            <button id="next-button" class="secondary-button" type="button">Skip to new problem</button>
+            <button id="reset-button" class="secondary-button" type="button">Reset stars</button>
+            <button id="history-button" class="secondary-button" type="button">Parent history</button>
+          </div>
+        </section>
+
+        <section id="history-card" class="card history-card" hidden>
+          <div class="history-header">
+            <div>
+              <p class="practice-label">Parent History</p>
+              <h2 class="history-title">This session only</h2>
+              <p class="history-note">Refresh the page and this history list will clear.</p>
+            </div>
+            <div class="history-header-actions">
+              <button id="clear-history-button" class="secondary-button" type="button">
+                Clear history
+              </button>
+              <button id="close-history-button" class="secondary-button" type="button">
+                Close history
+              </button>
+            </div>
+          </div>
+
+          <div class="history-summary">
+            <div class="progress-pill">
+              <span>Records</span>
+              <strong id="history-count">0</strong>
+            </div>
+            <div class="progress-pill">
+              <span>Need review</span>
+              <strong id="history-review-count">0</strong>
+            </div>
+            <div class="progress-pill">
+              <span>Correct</span>
+              <strong id="history-correct-count">0</strong>
+            </div>
+          </div>
+
+          <div id="history-empty" class="history-empty">
+            No answers yet. This page will fill up as your child practices.
+          </div>
+          <div id="history-list" class="history-list" aria-live="polite"></div>
+        </section>
+      </div>
+
+      <div id="letters-page" class="page-view" hidden>
+        <section class="card hero-card letters-hero-card">
+          <div class="hero-friend" aria-hidden="true">
+            <div class="friend-face">
+              <span class="eye left"></span>
+              <span class="eye right"></span>
+              <span class="smile"></span>
+            </div>
+          </div>
+
+          <div class="letter-case-switcher" aria-label="Choose letter case">
+            <button
+              class="letter-case-button is-active"
+              data-letter-case="uppercase"
+              type="button"
+              aria-pressed="true"
+            >
+              Uppercase
             </button>
             <button
-              id="clear-all-button"
-              class="secondary-button eraser-button"
+              class="letter-case-button"
+              data-letter-case="lowercase"
               type="button"
-              aria-label="Clear the handwriting board"
+              aria-pressed="false"
             >
-              <span class="eraser-icon" aria-hidden="true"></span>
-              <span>Eraser</span>
+              Lowercase
             </button>
           </div>
         </section>
 
-        <p id="feedback" class="feedback neutral" aria-live="polite">Write your answer in the box.</p>
-
-        <div class="action-row">
-          <button id="next-button" class="secondary-button" type="button">Skip to new problem</button>
-          <button id="reset-button" class="secondary-button" type="button">Reset stars</button>
-          <button id="history-button" class="secondary-button" type="button">Parent history</button>
-        </div>
-      </section>
-
-      <section id="history-card" class="card history-card" hidden>
-        <div class="history-header">
-          <div>
-            <p class="practice-label">Parent History</p>
-            <h2 class="history-title">This session only</h2>
-            <p class="history-note">Refresh the page and this history list will clear.</p>
+        <section class="card practice-card letters-practice-card">
+          <div class="progress-row">
+            <div class="progress-pill">
+              <span>Correct</span>
+              <strong id="letter-correct-count">0</strong>
+            </div>
+            <div class="progress-pill">
+              <span>Answered</span>
+              <strong id="letter-total-count">0</strong>
+            </div>
+            <div class="progress-pill">
+              <span>Streak</span>
+              <strong id="letter-streak-count">0</strong>
+            </div>
           </div>
-          <div class="history-header-actions">
-            <button id="clear-history-button" class="secondary-button" type="button">
-              Clear history
+
+          <div class="sticker-panel">
+            <div>
+              <p class="practice-label">Letters A-Z</p>
+              <p id="letter-coach-text" class="coach-text">Trace the highlighted stroke.</p>
+            </div>
+          </div>
+
+          <div id="letter-target-board" class="letter-target-board" aria-live="polite">
+            <span id="letter-target-char" class="letter-target-char">A</span>
+            <div class="letter-target-meta">
+              <p id="letter-sequence-label" class="letter-sequence-label">Letter 1 of 26</p>
+              <p id="letter-stroke-progress" class="letter-stroke-progress">Stroke 1 of 3</p>
+            </div>
+          </div>
+
+          <section class="handwriting-panel" aria-label="Letter tracing area">
+            <div class="handwriting-topline">
+              <p class="handwriting-title">Tracing board</p>
+              <div class="recognized-pill">
+                <span>Current step</span>
+                <strong id="letter-step-indicator">1 / 3</strong>
+              </div>
+            </div>
+
+            <p id="letter-handwriting-help" class="handwriting-help">
+              Start at the glowing dot and trace the blue stroke.
+            </p>
+
+            <div class="pad-grid">
+              <div class="pad-shell letter-pad-shell is-active">
+                <canvas
+                  id="letter-completed-pad"
+                  class="letter-completed-pad"
+                  aria-hidden="true"
+                ></canvas>
+                <canvas id="letter-guide-canvas" class="letter-guide-canvas" aria-hidden="true"></canvas>
+                <canvas id="letter-pad" class="digit-pad letter-pad" aria-label="Letter tracing board"></canvas>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button id="letter-check-button" class="primary-button check-button" type="button">
+                <span class="magnifier-icon" aria-hidden="true"></span>
+                <span>Check my letter</span>
+              </button>
+              <button
+                id="letter-clear-button"
+                class="secondary-button eraser-button"
+                type="button"
+                aria-label="Clear the tracing board"
+              >
+                <span class="eraser-icon" aria-hidden="true"></span>
+                <span>Eraser</span>
+              </button>
+            </div>
+          </section>
+
+          <p id="letter-feedback" class="feedback neutral" aria-live="polite">
+            Trace the highlighted stroke in order.
+          </p>
+
+          <div class="action-row">
+            <button id="letter-next-button" class="secondary-button" type="button">
+              Skip to next letter
             </button>
-            <button id="close-history-button" class="secondary-button" type="button">
-              Close history
+            <button id="letter-speak-button" class="secondary-button speak-button" type="button">
+              <span class="speaker-icon" aria-hidden="true"></span>
+              <span>Hear it again</span>
+            </button>
+            <button id="letter-history-button" class="secondary-button" type="button">
+              Parent history
             </button>
           </div>
-        </div>
+        </section>
 
-        <div class="history-summary">
-          <div class="progress-pill">
-            <span>Records</span>
-            <strong id="history-count">0</strong>
+        <section id="letter-history-card" class="card history-card" hidden>
+          <div class="history-header">
+            <div>
+              <p class="practice-label">Parent History</p>
+              <h2 class="history-title">This session only</h2>
+              <p class="history-note">Refresh the page and this history list will clear.</p>
+            </div>
+            <div class="history-header-actions">
+              <button id="letter-clear-history-button" class="secondary-button" type="button">
+                Clear history
+              </button>
+              <button id="letter-close-history-button" class="secondary-button" type="button">
+                Close history
+              </button>
+            </div>
           </div>
-          <div class="progress-pill">
-            <span>Need review</span>
-            <strong id="history-review-count">0</strong>
-          </div>
-          <div class="progress-pill">
-            <span>Correct</span>
-            <strong id="history-correct-count">0</strong>
-          </div>
-        </div>
 
-        <div id="history-empty" class="history-empty">
-          No answers yet. This page will fill up as your child practices.
-        </div>
-        <div id="history-list" class="history-list" aria-live="polite"></div>
-      </section>
+          <div class="history-summary">
+            <div class="progress-pill">
+              <span>Records</span>
+              <strong id="letter-history-count">0</strong>
+            </div>
+            <div class="progress-pill">
+              <span>Need review</span>
+              <strong id="letter-history-review-count">0</strong>
+            </div>
+            <div class="progress-pill">
+              <span>Correct</span>
+              <strong id="letter-history-correct-count">0</strong>
+            </div>
+          </div>
+
+          <div id="letter-history-empty" class="history-empty">
+            No letters checked yet. This page will fill up as your child traces.
+          </div>
+          <div id="letter-history-list" class="history-list" aria-live="polite"></div>
+        </section>
+      </div>
     </main>
 
     <div id="result-modal" class="result-modal-backdrop" hidden>
       <div class="result-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <div id="modal-badge" class="modal-badge">★</div>
+        <div id="modal-badge" class="modal-badge">OK</div>
         <h2 id="modal-title">Great job!</h2>
         <p id="modal-message">You got it right.</p>
         <button id="modal-button" class="primary-button" type="button">Next problem</button>
