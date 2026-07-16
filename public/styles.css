@@ -714,19 +714,22 @@ button {
 }
 
 .letter-guide-canvas {
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
-  background:
-    linear-gradient(transparent 0 24%, rgba(113, 160, 206, 0.12) 24% 25%, transparent 25% 49%, rgba(113, 160, 206, 0.12) 49% 50%, transparent 50% 74%, rgba(113, 160, 206, 0.12) 74% 75%, transparent 75% 100%);
 }
 
-.letter-completed-pad {
+.letter-rules-canvas {
   z-index: 0;
   pointer-events: none;
 }
 
+.letter-completed-pad {
+  z-index: 1;
+  pointer-events: none;
+}
+
 .letter-pad {
-  z-index: 2;
+  z-index: 3;
   background: transparent;
 }
 

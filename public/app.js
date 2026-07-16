@@ -103,6 +103,7 @@ const elements = {
   letterStrokeProgress: document.querySelector("#letter-stroke-progress"),
   letterStepIndicator: document.querySelector("#letter-step-indicator"),
   letterHandwritingHelp: document.querySelector("#letter-handwriting-help"),
+  letterRulesCanvas: document.querySelector("#letter-rules-canvas"),
   letterCompletedPad: document.querySelector("#letter-completed-pad"),
   letterGuideCanvas: document.querySelector("#letter-guide-canvas"),
   letterPad: document.querySelector("#letter-pad"),
@@ -481,25 +482,27 @@ function createHiDPICanvas(width, height, ratio) {
 
 function letterLayout(board) {
   const boxSize = Math.min(board.height * 0.78, board.width * 0.68);
-  const guideLineWidth = Math.max(12, boxSize * 0.1);
-  const userLineWidth = Math.max(14, guideLineWidth * 1.2);
+  const guideLineWidth = Math.max(8, boxSize * 0.06);
+  const userLineWidth = Math.max(9, guideLineWidth * 1.05);
   return {
     left: (board.width - boxSize) / 2,
     top: (board.height - boxSize) / 2,
     boxSize,
     guideLineWidth,
     userLineWidth,
-    maskLineWidth: Math.max(userLineWidth * 1.45, guideLineWidth + 8),
-    eraseLineWidth: Math.max(userLineWidth * 1.55, guideLineWidth + 10),
-    dotRadius: Math.max(7, boxSize * 0.032),
+    maskLineWidth: Math.max(userLineWidth * 1.6, guideLineWidth + 7),
+    eraseLineWidth: Math.max(userLineWidth * 1.7, guideLineWidth + 8),
+    dotRadius: Math.max(6, boxSize * 0.026),
   };
 }
 
 function mapLetterPoint(board, point) {
   const layout = letterLayout(board);
+  const templateY =
+    state.letters.letterCase === "uppercase" ? 12 + ((point[1] - 10) * 64) / 82 : point[1];
   return {
     x: layout.left + (layout.boxSize * point[0]) / 100,
-    y: layout.top + (layout.boxSize * point[1]) / 100,
+    y: layout.top + (layout.boxSize * templateY) / 100,
   };
 }
 
@@ -514,6 +517,27 @@ function drawLetterStrokePath(ctx, board, stroke, lineWidth) {
   }
   ctx.lineWidth = lineWidth;
   ctx.stroke();
+}
+
+function renderLetterWritingRules(board) {
+  const layout = letterLayout(board);
+  const ruleYs = [12, 40, 76];
+  const ctx = board.rulesCtx;
+  ctx.clearRect(0, 0, board.width, board.height);
+  ctx.save();
+  ctx.strokeStyle = "rgba(113, 160, 206, 0.3)";
+  ctx.lineWidth = Math.max(1, layout.boxSize * 0.004);
+  ctx.setLineDash([7, 6]);
+
+  for (const templateY of ruleYs) {
+    const y = layout.top + (layout.boxSize * templateY) / 100;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(board.width, y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
 function clearLetterFeedback(message = "Trace the highlighted stroke in order.", type = "neutral") {
@@ -647,6 +671,7 @@ function setupLetterBoard() {
   const height = Math.max(160, Math.round(rect.height));
 
   for (const canvas of [
+    elements.letterRulesCanvas,
     elements.letterCompletedPad,
     elements.letterGuideCanvas,
     elements.letterPad,
@@ -654,6 +679,9 @@ function setupLetterBoard() {
     canvas.width = width * ratio;
     canvas.height = height * ratio;
   }
+
+  const rulesCtx = elements.letterRulesCanvas.getContext("2d", { willReadFrequently: true });
+  rulesCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
   const completedCtx = elements.letterCompletedPad.getContext("2d", { willReadFrequently: true });
   completedCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -676,9 +704,11 @@ function setupLetterBoard() {
     height,
     ratio,
     drawCanvas: elements.letterPad,
+    rulesCanvas: elements.letterRulesCanvas,
     completedCanvas: elements.letterCompletedPad,
     guideCanvas: elements.letterGuideCanvas,
     drawCtx,
+    rulesCtx,
     completedCtx,
     guideCtx,
     drawing: false,
@@ -708,6 +738,7 @@ function renderLetterGuide() {
 
   const letterData = currentLetterData();
   const layout = letterLayout(board);
+  renderLetterWritingRules(board);
   board.guideCtx.clearRect(0, 0, board.width, board.height);
 
   for (let index = state.letters.activeStrokeIndex; index < letterData.strokes.length; index += 1) {
