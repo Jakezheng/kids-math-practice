@@ -7,9 +7,10 @@ Interactive first-grade practice for kids with a large handwriting board, instan
 - Addition and subtraction within 100
 - Multiplication up to 11
 - Uppercase and lowercase A-Z tracing with guided stroke order
+- Five sight-word levels with 50 high-frequency words, swipeable word cards, and spoken-word playback
 - One large handwriting box for writing the full answer
 - Handwritten digit recognition tuned for child-friendly input
-- Query-string page links: `?page=math` and `?page=letters`
+- Query-string page links: `?page=math`, `?page=letters`, and `?page=sight-words`
 - Cute eraser and magnifier actions
 - GitHub Pages deployment
 
@@ -31,6 +32,12 @@ Letters page:
 
 ```text
 http://127.0.0.1:3000/?page=letters
+```
+
+Sight Words page:
+
+```text
+http://127.0.0.1:3000/?page=sight-words
 ```
 
 For auto-reload during local development:

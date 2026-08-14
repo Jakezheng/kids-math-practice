@@ -13,8 +13,15 @@ const MODEL_INNER_SIZE = 20;
 const STAR_GOAL = 14;
 const MODE_SEQUENCE = ["addition", "subtraction", "multiplication"];
 const LIMIT_OPTIONS = [10, 20, 30, 50, 100, 1000];
-const PAGE_VALUES = ["math", "letters"];
+const PAGE_VALUES = ["math", "letters", "sight-words"];
 const LETTER_CASES = ["uppercase", "lowercase"];
+const SIGHT_WORDS = {
+  1: ["a", "I", "the", "to", "is", "you", "it", "in", "we", "go"],
+  2: ["and", "can", "see", "like", "my", "me", "on", "big", "at", "up"],
+  3: ["he", "she", "they", "was", "for", "with", "said", "have", "this", "that"],
+  4: ["from", "or", "one", "had", "by", "word", "all", "were", "when", "there"],
+  5: ["what", "so", "out", "if", "about", "who", "get", "which", "their", "would"],
+};
 
 const state = {
   page: "math",
@@ -46,6 +53,13 @@ const state = {
     board: null,
     speechRequestId: 0,
   },
+  sightWords: {
+    level: 1,
+    wordIndex: 0,
+    swipeStartX: 0,
+    swipeStartY: 0,
+    speechRequestId: 0,
+  },
 };
 
 const coachLines = {
@@ -59,6 +73,15 @@ const elements = {
   letterCaseButtons: [...document.querySelectorAll("[data-letter-case]")],
   mathPage: document.querySelector("#math-page"),
   lettersPage: document.querySelector("#letters-page"),
+  sightWordsPage: document.querySelector("#sight-words-page"),
+  sightLevelButtons: [...document.querySelectorAll("[data-sight-level]")],
+  sightWordCard: document.querySelector("#sight-word-card"),
+  sightWordText: document.querySelector("#sight-word-text"),
+  sightWordLevel: document.querySelector("#sight-word-level"),
+  sightWordCount: document.querySelector("#sight-word-count"),
+  sightWordSpeakButton: document.querySelector("#sight-word-speak-button"),
+  sightWordBackButton: document.querySelector("#sight-word-back-button"),
+  sightWordNextButton: document.querySelector("#sight-word-next-button"),
   modeButtons: [...document.querySelectorAll("[data-mode]")],
   modeLabel: document.querySelector("#mode-label"),
   coachText: document.querySelector("#coach-text"),
@@ -165,6 +188,60 @@ function ensureLetterPageReady() {
   void speakCurrentLetter();
 }
 
+function currentSightWordList() {
+  return SIGHT_WORDS[state.sightWords.level];
+}
+
+function currentSightWord() {
+  return currentSightWordList()[state.sightWords.wordIndex];
+}
+
+function renderSightWordLevels() {
+  for (const button of elements.sightLevelButtons) {
+    const isActive = Number(button.dataset.sightLevel) === state.sightWords.level;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  }
+}
+
+function animateSightWordCard(animationName) {
+  elements.sightWordCard.classList.remove("slide-next", "slide-previous");
+  void elements.sightWordCard.offsetWidth;
+  elements.sightWordCard.classList.add(animationName);
+}
+
+function renderSightWord() {
+  const words = currentSightWordList();
+  elements.sightWordText.textContent = currentSightWord();
+  elements.sightWordLevel.textContent = `Level ${state.sightWords.level}`;
+  elements.sightWordCount.textContent = `${state.sightWords.wordIndex + 1} of ${words.length}`;
+}
+
+function ensureSightWordsPageReady() {
+  renderSightWordLevels();
+  renderSightWord();
+}
+
+function setSightWordLevel(level) {
+  if (!SIGHT_WORDS[level]) {
+    return;
+  }
+
+  state.sightWords.level = level;
+  state.sightWords.wordIndex = 0;
+  renderSightWordLevels();
+  renderSightWord();
+  animateSightWordCard("slide-next");
+}
+
+function moveSightWord(direction) {
+  const words = currentSightWordList();
+  state.sightWords.wordIndex =
+    (state.sightWords.wordIndex + direction + words.length) % words.length;
+  renderSightWord();
+  animateSightWordCard(direction > 0 ? "slide-next" : "slide-previous");
+}
+
 function renderLetterCaseButtons() {
   for (const button of elements.letterCaseButtons) {
     const isActive = button.dataset.letterCase === state.letters.letterCase;
@@ -190,6 +267,7 @@ function setPage(page, { updateUrl = true } = {}) {
   state.page = PAGE_VALUES.includes(page) ? page : "math";
   elements.mathPage.hidden = state.page !== "math";
   elements.lettersPage.hidden = state.page !== "letters";
+  elements.sightWordsPage.hidden = state.page !== "sight-words";
 
   for (const button of elements.pageButtons) {
     button.classList.toggle("is-active", button.dataset.page === state.page);
@@ -201,12 +279,14 @@ function setPage(page, { updateUrl = true } = {}) {
 
   resetResultModal();
 
-  if (state.page !== "letters") {
-    cancelLetterSpeech();
-  }
+  cancelSpeech();
 
   if (state.page === "letters") {
     ensureLetterPageReady();
+  }
+
+  if (state.page === "sight-words") {
+    ensureSightWordsPageReady();
   }
 }
 
@@ -551,8 +631,9 @@ function updateLetterScoreboard() {
   elements.letterStreakCount.textContent = String(state.letters.streak);
 }
 
-function cancelLetterSpeech() {
+function cancelSpeech() {
   state.letters.speechRequestId += 1;
+  state.sightWords.speechRequestId += 1;
   if ("speechSynthesis" in window) {
     window.speechSynthesis.cancel();
   }
@@ -590,6 +671,28 @@ async function speakCurrentLetter() {
   }
 
   await speakLetter(letter);
+}
+
+async function speakCurrentSightWord() {
+  if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    return;
+  }
+
+  const word = currentSightWord();
+  const requestId = ++state.sightWords.speechRequestId;
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(word);
+  utterance.lang = "en-US";
+  utterance.rate = 0.56;
+  utterance.pitch = 0.96;
+  utterance.volume = 1;
+  utterance.onend = () => {};
+  utterance.onerror = () => {};
+
+  if (requestId === state.sightWords.speechRequestId) {
+    window.speechSynthesis.speak(utterance);
+  }
 }
 
 function renderLetterHistory() {
@@ -1923,6 +2026,29 @@ for (const button of elements.pageButtons) {
 for (const button of elements.letterCaseButtons) {
   button.addEventListener("click", () => setLetterCase(button.dataset.letterCase));
 }
+
+for (const button of elements.sightLevelButtons) {
+  button.addEventListener("click", () => setSightWordLevel(Number(button.dataset.sightLevel)));
+}
+
+elements.sightWordSpeakButton.addEventListener("click", () => {
+  void speakCurrentSightWord();
+});
+elements.sightWordBackButton.addEventListener("click", () => moveSightWord(-1));
+elements.sightWordNextButton.addEventListener("click", () => moveSightWord(1));
+elements.sightWordCard.addEventListener("pointerdown", (event) => {
+  state.sightWords.swipeStartX = event.clientX;
+  state.sightWords.swipeStartY = event.clientY;
+});
+elements.sightWordCard.addEventListener("pointerup", (event) => {
+  const deltaX = event.clientX - state.sightWords.swipeStartX;
+  const deltaY = event.clientY - state.sightWords.swipeStartY;
+  if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY)) {
+    return;
+  }
+
+  moveSightWord(deltaX < 0 ? 1 : -1);
+});
 
 elements.clearAllButton.addEventListener("click", () => clearAllPads());
 elements.nextButton.addEventListener("click", () => {
